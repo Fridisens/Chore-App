@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5939F4202D648EAC00CA577B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 5939F41F2D648EAC00CA577B /* FirebaseFirestore */; };
 		5943DBB42D63647D008AB2F0 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5943DBB32D63647D008AB2F0 /* FirebaseCore */; };
 		5943DBB62D636494008AB2F0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 5943DBB52D636494008AB2F0 /* FirebaseAuth */; };
 		5943DBB82D63656A008AB2F0 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 5943DBB72D63656A008AB2F0 /* FirebaseAnalytics */; };
@@ -30,6 +31,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5943DBB42D63647D008AB2F0 /* FirebaseCore in Frameworks */,
+				5939F4202D648EAC00CA577B /* FirebaseFirestore in Frameworks */,
 				5943DBB62D636494008AB2F0 /* FirebaseAuth in Frameworks */,
 				5943DBB82D63656A008AB2F0 /* FirebaseAnalytics in Frameworks */,
 			);
@@ -85,6 +87,7 @@
 				5943DBB32D63647D008AB2F0 /* FirebaseCore */,
 				5943DBB52D636494008AB2F0 /* FirebaseAuth */,
 				5943DBB72D63656A008AB2F0 /* FirebaseAnalytics */,
+				5939F41F2D648EAC00CA577B /* FirebaseFirestore */,
 			);
 			productName = "Chore-App";
 			productReference = 5943DB9E2D634495008AB2F0 /* Chore-App.app */;
@@ -360,6 +363,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5939F41F2D648EAC00CA577B /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5943DBB12D63610D008AB2F0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
 		5943DBB32D63647D008AB2F0 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5943DBB12D63610D008AB2F0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
