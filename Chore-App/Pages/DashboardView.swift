@@ -16,6 +16,20 @@ struct DashboardView: View {
                 .font(.title2)
                 .padding()
             
+            
+            Button(action: {
+                // AddChoreView()
+                // AddTaskView()
+            }) {
+                Text("Add Chores or Task")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.purple)
+                    .foregroundColor(Color.white)
+                    .cornerRadius(10)
+            }
+    
+            
             Button(action: {
                 authService.logout()
             }) {
