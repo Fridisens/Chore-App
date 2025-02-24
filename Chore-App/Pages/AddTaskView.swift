@@ -1,7 +1,12 @@
-//
-//  AddTaskView.swift
-//  Chore-App
-//
-//  Created by Frida Dahlqvist on 2025-02-21.
-//
+//forms for adding task that you then can find at profile page
+import SwiftUI
 
+struct AddTaskView: View {
+    var body: some View {
+        VStack {
+            Text("Add a New Task")
+                .font(.largeTitle)
+                .padding()
+        }
+    }
+}

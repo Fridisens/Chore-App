@@ -13,9 +13,7 @@ struct AddChoreView: View {
     
     var body: some View {
         VStack {
-            Text("Add chores and tasks")
-                .font(.largeTitle)
-            
+          
             
             TextField("Chore name", text: $name )
                 .textFieldStyle(RoundedBorderTextFieldStyle())

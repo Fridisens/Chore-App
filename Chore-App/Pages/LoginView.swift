@@ -25,7 +25,7 @@ struct LoginView: View {
                     .padding()
             }
             
-            Button(action: {
+            PrimaryButton(title: "Login") {
                 authService.login(email: email, password: password) { result in
                     switch result {
                     case .success():
@@ -34,15 +34,7 @@ struct LoginView: View {
                         self.errorMessage = error.localizedDescription
                     }
                 }
-            }) {
-                Text("Login")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.purple)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
             }
-            .padding()
         }
         .padding()
     }
