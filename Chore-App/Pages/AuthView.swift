@@ -6,31 +6,35 @@ struct AuthView: View {
     @EnvironmentObject var authService: AuthService
     
     var body: some View {
-        if authService.user != nil {
-            MainTabView()
-            
-        } else {
-            
-            VStack {
-                Text("TaskTreasure")
-                    .font(.largeTitle)
+        NavigationView {
+            if authService.user != nil {
+                withAnimation {
+                    MainTabView()
+                }
+                
+            } else {
+                
+                VStack {
+                    Text("TaskTreasure")
+                        .font(.largeTitle)
+                        .padding()
+                    
+                    
+                    Picker(selection: $selectedTab, label: Text("Auth Selection")) {
+                        Text("Login").tag("Login")
+                        Text("Register").tag("Register")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
                     .padding()
-                
-                
-                Picker(selection: $selectedTab, label: Text("Auth Selection")) {
-                    Text("Login").tag("Login")
-                    Text("Register").tag("Register")
+                    
+                    if selectedTab == "Login" {
+                        LoginView()
+                    } else {
+                        RegisterView()
+                    }
                 }
-                .pickerStyle(SegmentedPickerStyle())
                 .padding()
-                
-                if selectedTab == "Login" {
-                    LoginView()
-                } else {
-                    RegisterView()
-                }
             }
-            .padding()
         }
     }
 }

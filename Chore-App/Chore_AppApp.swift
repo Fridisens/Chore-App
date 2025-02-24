@@ -15,6 +15,7 @@ struct Chore_AppApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     init() {
+        
         FirebaseApp.configure()
         
     }

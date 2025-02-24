@@ -7,43 +7,21 @@ struct DashboardView: View {
     @EnvironmentObject var authService: AuthService
     
     var body: some View {
-        VStack {
-            Text("Welcome, \(authService.user?.name ?? "User")!")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("Your balance: \(authService.user?.balance ?? 0)")
-                .font(.title2)
-                .padding()
-            
-            
-            Button(action: {
-                // AddChoreView()
-                // AddTaskView()
-            }) {
-                Text("Add Chores or Task")
-                    .frame(maxWidth: .infinity)
+        NavigationView {
+            VStack {
+                Text("Welcome, \(authService.user?.name ?? "User")!")
+                    .font(.largeTitle)
                     .padding()
-                    .background(Color.purple)
-                    .foregroundColor(Color.white)
-                    .cornerRadius(10)
-            }
-    
-            
-            Button(action: {
-                authService.logout()
-            }) {
-                Text("Logout")
-                    .frame(maxWidth: .infinity)
+                
+                Text("Your balance: \(authService.user?.balance ?? 0)")
+                    .font(.title2)
                     .padding()
-                    .background(Color.purple)
-                    .foregroundColor(Color.white)
-                    .cornerRadius(10)
+                
+                
+                NavigationButton(title: "Add Chores or Task", destination: AddItemView())
+                
             }
-            
             .padding()
         }
-        
-        .padding()
     }
 }

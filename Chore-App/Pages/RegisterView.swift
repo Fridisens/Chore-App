@@ -43,14 +43,7 @@ struct RegisterView: View {
 
     
     private func registerButton() -> some View {
-        Button(action: registerUser) {
-            Text("Register")
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.purple)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-        }
+        PrimaryButton(title: "Register", action: registerUser)
         .padding()
     }
 
