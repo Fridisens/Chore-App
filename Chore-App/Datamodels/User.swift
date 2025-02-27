@@ -6,5 +6,5 @@ struct User: Identifiable, Codable {
     var name: String
     var email: String
     var balance: Int
-    var rewardType: String //money or screen time
+    var rewardType: String
 }

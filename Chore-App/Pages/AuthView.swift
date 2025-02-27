@@ -21,8 +21,8 @@ struct AuthView: View {
                     
                     
                     Picker(selection: $selectedTab, label: Text("Auth Selection")) {
-                        Text("Login").tag("Login")
-                        Text("Register").tag("Register")
+                        Text("Logga in").tag("Login")
+                        Text("Registrera").tag("Register")
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .padding()

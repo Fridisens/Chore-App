@@ -10,12 +10,12 @@ struct LoginView: View {
     
     var body: some View {
         VStack {
-            TextField("E-mail", text: $email)
+            TextField("E-post", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
                 .padding()
             
-            SecureField("Password", text: $password)
+            SecureField("Lösenord", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             
@@ -25,7 +25,7 @@ struct LoginView: View {
                     .padding()
             }
             
-            PrimaryButton(title: "Login") {
+            PrimaryButton(title: "Logga in") {
                 authService.login(email: email, password: password) { result in
                     switch result {
                     case .success():
