@@ -8,7 +8,7 @@ struct RegisterView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @EnvironmentObject var authService: AuthService
-
+    
     var body: some View {
         VStack {
             inputFields()
@@ -16,23 +16,23 @@ struct RegisterView: View {
         }
         .padding()
     }
-
-   
+    
+    
     private func inputFields() -> some View {
         VStack {
-            TextField("Name", text: $name)
+            TextField("Namn", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-
-            TextField("E-mail", text: $email)
+            
+            TextField("E-post", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
                 .padding()
-
-            SecureField("Password", text: $password)
+            
+            SecureField("Lösenord", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-
+            
             if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
@@ -40,13 +40,13 @@ struct RegisterView: View {
             }
         }
     }
-
+    
     
     private func registerButton() -> some View {
-        PrimaryButton(title: "Register", action: registerUser)
-        .padding()
+        PrimaryButton(title: "Registrera", action: registerUser)
+            .padding()
     }
-
+    
     private func registerUser() {
         authService.registerUser(email: email, password: password, name: name) { (result: Result<User, Error>) in
             switch result {

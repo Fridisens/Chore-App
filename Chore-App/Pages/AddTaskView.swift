@@ -2,9 +2,11 @@
 import SwiftUI
 
 struct AddTaskView: View {
+    var selectedChild: Child
+
     var body: some View {
         VStack {
-            Text("Add a New Task")
+            Text("Lägg till uppgift för \(selectedChild.name)")
                 .font(.largeTitle)
                 .padding()
         }

@@ -6,7 +6,6 @@ struct Chore: Identifiable, Codable {
     var name: String
     var value: Int
     var frequency: Int
-    var completed: Int //how many times done this week
+    var completed: Int
     var assignedBy: String
-    
 }
