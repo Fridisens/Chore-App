@@ -3,9 +3,6 @@ import SwiftUI
 import Firebase
 import FirebaseAuth
 
-import SwiftUI
-import Firebase
-
 struct DashboardView: View {
     @EnvironmentObject var authService: AuthService
     @State private var children: [Child] = []
@@ -13,9 +10,7 @@ struct DashboardView: View {
     @State private var weeklyGoal: Int = 50
     
     var body: some View {
-        NavigationView {
             VStack {
-                
                 Picker("Välj barn", selection: $selectedChild) {
                     ForEach(children, id: \.self) { child in
                         Text(child.name).tag(Optional(child))
@@ -49,8 +44,8 @@ struct DashboardView: View {
                     
                     
                     HStack {
-                        Text("Weekly Goal:")
-                        TextField("Goal", value: $weeklyGoal, formatter: NumberFormatter())
+                        Text("Veckans mål i kronor:")
+                        TextField("Mål", value: $weeklyGoal, formatter: NumberFormatter())
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .keyboardType(.numberPad)
                             .frame(width: 60)
@@ -64,7 +59,7 @@ struct DashboardView: View {
             .onAppear {
                 loadChildren()
             }
-        }
+        
     }
     
     private func loadChildren() {
@@ -132,4 +127,3 @@ struct DashboardView: View {
             }
     }
 }
-

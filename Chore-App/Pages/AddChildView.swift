@@ -24,7 +24,7 @@ struct AddChildView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Add Child")
+            .navigationTitle("Lägg till barn")
             .navigationBarItems(leading:
                                     Button("Tillbaka") {
                 isAddingChild = false

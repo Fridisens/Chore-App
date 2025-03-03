@@ -6,37 +6,39 @@ import FirebaseAuth
 
 struct AddChoreView: View {
     var selectedChild: Child
+    @EnvironmentObject var authService: AuthService
     @State private var name = ""
     @State private var description = ""
     @State private var value: Int = 0
     @State private var frequency = "Daily"
+    @StateObject private var firestoreService = FirestoreService()
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         VStack {
-            Text("Add Chore for \(selectedChild.name)")
+            Text("Lägg till syssla för \(selectedChild.name)")
                 .font(.title2)
                 .padding()
             
-            TextField("Chore name", text: $name)
+            TextField("Syssla", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
                 .padding()
             
             
-            TextField("Value (SEK)", value: $value, formatter: NumberFormatter())
+            TextField("Saldo (SEK)", value: $value, formatter: NumberFormatter())
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.numberPad)
                 .padding()
             
-            Picker("Frequency", selection: $frequency) {
-                Text("Daily").tag("Daily")
-                Text("Weekly").tag("Weekly")
+            Picker("Hur ofta?", selection: $frequency) {
+                Text("Dagligen").tag("Daily")
+                Text("Veckovis").tag("Weekly")
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
             
-            Button("Save Chore") {
+            Button("Spara") {
                 saveChore()
             }
             .padding()
@@ -48,23 +50,25 @@ struct AddChoreView: View {
     }
     
     private func saveChore() {
-        guard let parentId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        let choreRef = db.collection("users").document(parentId).collection("children").document(selectedChild.id).collection("chores").document()
-        
-        let newChore = Chore(id: choreRef.documentID, name: name, value: value, frequency: frequency == "Daily" ? 1 : 7, completed: 0, assignedBy: parentId)
-        
-        do {
-            try choreRef.setData(from: newChore) { error in
-                if let error = error {
-                    print("Error adding chore: \(error.localizedDescription)")
-                } else {
-                    print("Chore saved successfully with value \(value) SEK!")
+            guard let userId = authService.user?.id else { return }
+            
+            let newChore = Chore(
+                id: UUID().uuidString,
+                name: name,
+                value: value,
+                frequency: frequency == "Daily" ? 1 : 7,
+                completed: 0,
+                assignedBy: userId
+            )
+            
+            firestoreService.addChore(for: userId, childId: selectedChild.id, chore: newChore) { result in
+                switch result {
+                case .success():
+                    print("Syssla tillagd!")
                     presentationMode.wrappedValue.dismiss()
+                case .failure(let error):
+                    print("Fel vid tillägg av syssla: \(error.localizedDescription)")
                 }
             }
-        } catch {
-            print("Error encoding chore: \(error.localizedDescription)")
         }
     }
-}

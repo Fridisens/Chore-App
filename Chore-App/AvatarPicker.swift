@@ -16,7 +16,7 @@ struct AvatarPicker: View {
                     ForEach(avatars, id: \.self) { avatar in
                         Image(avatar)
                             .resizable()
-                            .frame(width: 60, height: 60)
+                            .frame(width: 50, height: 50)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(selectedAvatar == avatar ? Color.blue : Color.clear, lineWidth: 3))
                             .onTapGesture {
