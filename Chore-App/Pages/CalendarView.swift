@@ -6,11 +6,20 @@ import SwiftUI
 
 
 struct CalendarView: View {
+    
+    @State private var selectedDate = Date()
+    
+    
     var body: some View {
         VStack {
-            Text("Calendar")
+            Text("Kalender")
                 .font(.largeTitle)
                 .padding()
+            
+            DatePicker("Välj datum", selection: $selectedDate, displayedComponents: [.date])
+                .datePickerStyle(GraphicalDatePickerStyle())
+                .padding()
         }
+        .padding()
     }
 }
