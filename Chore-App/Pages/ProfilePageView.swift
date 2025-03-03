@@ -4,6 +4,7 @@ import FirebaseAuth
 
 struct ProfilePageView: View {
     @EnvironmentObject var authService: AuthService
+    @StateObject private var firestoreService = FirestoreService()
     @State private var children: [Child] = []
     @State private var selectedChild: Child?
     @State private var chores: [Chore] = []
@@ -11,109 +12,113 @@ struct ProfilePageView: View {
     @State private var isAddingChild = false
     @State private var selectedAvatar: String = "avatar1"
     @State private var isShowingDeleteAlert = false
+    @State private var isShowingLogoutAlert = false
     @State private var password = ""
     
     var body: some View {
         
-        VStack(alignment: .center) {
-            
-            Picker("Välj barn", selection: $selectedChild) {
-                ForEach(children, id: \.self) { child in
-                    Text(child.name).tag(Optional(child))
+        NavigationView {
+            VStack {
+                Picker("Välj barn", selection: $selectedChild) {
+                    ForEach(children, id: \.self) { child in
+                        Text(child.name).tag(Optional(child))
+                    }
                 }
-            }
-            
-            .pickerStyle(MenuPickerStyle())
-            .padding()
-            
-            if let child = selectedChild {
-                
-                
-                VStack {
-                    Image(child.avatar)
-                        .resizable()
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-                        .padding(.top)
-                    
-                    Text(child.name)
-                        .font(.title)
-                        .padding(.bottom, 10)
-                }
-            }
-            
-            AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
-                .padding()
-            
-            List {
+                .pickerStyle(MenuPickerStyle())
                 if let child = selectedChild {
-                    Section(header: Text("Dagens sysslor")) {
-                        ForEach(chores.filter { $0.frequency == 1 }) { chore in
-                            ChoreRow(chore: chore, completedChores: $completedChores, selectedChild: child)
-                        }
+                    VStack {
+                        Image(child.avatar)
+                            .resizable()
+                            .frame(width: 80, height: 80)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
+                        
+                        Text(child.name)
+                            .font(.title)
                     }
-                    
-                    Section(header: Text("Veckans sysslor")) {
-                        ForEach(chores.filter { $0.frequency > 1 }) { chore in
-                            ChoreRow(chore: chore, completedChores: $completedChores, selectedChild: child)
+                }
+                
+                AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
+                    .padding()
+                List {
+                    if let child = selectedChild {
+                        Section(header: Text("Dagens sysslor")) {
+                            ForEach(chores.filter { $0.frequency == 1 }) { chore in
+                                ChoreRow(chore: chore, completedChores: $completedChores, selectedChild: child)
+                            }
+                        }
+                        
+                        Section(header: Text("Veckans sysslor")) {
+                            ForEach(chores.filter { $0.frequency > 1 }) { chore in
+                                ChoreRow(chore: chore, completedChores: $completedChores, selectedChild: child)
+                            }
                         }
                     }
                 }
-            }
-            .padding()
             
-            HStack {
-                if selectedChild != nil {
-                    Button(action: {
-                        isShowingDeleteAlert = true
-                    }) {
-                        Text("Ta bort barn")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                }
-                Button(action: logout) {
-                    Text("Logga ut")
-                        .frame(maxWidth: .infinity)
+                
+                HStack {
+                    if selectedChild != nil {
+                        Button(action: {
+                            isShowingDeleteAlert = true
+                        }) {
+                            Image(systemName: "trash")
+                                .padding()
+                                .background(Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                            
+                            
+                            
+                        }
+                        
+                        Button(action: {
+                            isShowingLogoutAlert = true
+                        }) {
+                            Image(systemName:"door.right.hand.open")
+                                .padding()
+                                .background(Color.gray)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                         .padding()
-                        .background(Color.gray)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .alert("Är du säker på att du vill logga ut?", isPresented: $isShowingLogoutAlert) {
+                            Button("Ja", role: .destructive) {
+                                logout()
+                            }
+                            Button("Tillbaka", role: .cancel) {}
+                        }
+                    }
                 }
+                Spacer()
             }
-            .padding()
-            
-            Spacer()
-            
-        }
-        .navigationTitle("Profile")
-        .navigationBarItems(trailing:
-                                Button(action: {
-            isAddingChild = true
-        }) {
-            Image(systemName: "plus.circle.fill")
-                .foregroundColor(.purple)
-                .font(.title)
-        }
-        )
-        .sheet(isPresented: $isAddingChild) {
-            AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
-        }
-        
-        .alert("Skriv ditt lösenord för att godkänna borttagning", isPresented: $isShowingDeleteAlert) {
-            SecureField("Lösenord", text: $password)
-            Button("Ta bort", role: .destructive) {
-                deleteChild()
+    
+            .navigationBarItems(trailing:
+                                    Button(action: {
+                isAddingChild = true
+            }) {
+                Image(systemName: "person.fill.badge.plus")
+                    .foregroundColor(.purple)
+                    .font(.title)
             }
-            Button("Tillbaka", role: .cancel) {}
-        }
-        .onAppear {
-            loadChildren()
-            loadAvatarFromFirebase()
+                                
+            )
+            .sheet(isPresented: $isAddingChild) {
+                AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
+            }
+            
+            
+            .alert("Skriv ditt lösenord för att godkänna borttagning", isPresented: $isShowingDeleteAlert) {
+                SecureField("Lösenord", text: $password)
+                Button("Ta bort", role: .destructive) {
+                    deleteChild()
+                }
+                Button("Tillbaka", role: .cancel) {}
+            }
+            .onAppear {
+                loadChildren()
+                loadAvatarFromFirebase()
+            }
         }
     }
     
@@ -137,6 +142,13 @@ struct ProfilePageView: View {
             }
         }
     }
+    
+    private func listenToChores(for childId: String) {
+            guard let userId = authService.user?.id else { return }
+            firestoreService.listenToChores(for: userId, childId: childId) { updatedChores in
+                self.chores = updatedChores
+            }
+        }
     
     
     private func loadChores() {
@@ -245,7 +257,3 @@ struct ProfilePageView: View {
         }
     }
 }
-
-
-
-

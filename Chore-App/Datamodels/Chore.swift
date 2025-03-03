@@ -1,6 +1,5 @@
 import Foundation
 
-//syssla
 struct Chore: Identifiable, Codable {
     var id: String
     var name: String

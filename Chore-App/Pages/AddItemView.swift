@@ -9,10 +9,6 @@ struct AddItemView: View {
     
     var body: some View {
         VStack {
-            Text("Lägg till syssla eller uppgift för \(selectedChild.name)")
-                .font(.largeTitle)
-                .padding()
-            
             Picker(selection: $selectedTab, label: Text("Välj typ")) {
                 Text("Syssla").tag("Chore")
                 Text("Uppgift").tag("Task")

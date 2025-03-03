@@ -7,6 +7,7 @@ struct MainTabView: View {
     }
     
     var body: some View {
+        
         NavigationView {
             TabView {
                 CalendarView()

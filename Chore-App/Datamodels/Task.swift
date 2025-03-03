@@ -1,6 +1,5 @@
 import Foundation
 
-//Uppgift
 struct Task: Identifiable, Codable {
     var id: String
     var name: String
