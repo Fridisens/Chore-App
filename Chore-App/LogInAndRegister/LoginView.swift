@@ -29,6 +29,7 @@ struct LoginView: View {
                 authService.login(email: email, password: password) { result in
                     switch result {
                     case .success():
+                        print("log in success")
                     case .failure(let error):
                         self.errorMessage = error.localizedDescription
                     }

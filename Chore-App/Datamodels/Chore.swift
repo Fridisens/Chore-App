@@ -1,6 +1,6 @@
 import Foundation
 
-struct Chore: Identifiable, Codable {
+struct Chore: Identifiable, Codable, Equatable {
     var id: String
     var name: String
     var value: Int
