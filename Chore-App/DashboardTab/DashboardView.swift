@@ -58,6 +58,7 @@ struct DashboardView: View {
             .padding()
             .onAppear {
                 loadChildren()
+                updateChildBalance()
             }
         
     }
