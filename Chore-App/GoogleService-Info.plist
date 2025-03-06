@@ -2,10 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Please allows us to use face id for authentication</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCSJKOoyVCoh9q_2JKDLPGp7VIrqGXVhJ8</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usage when parent deletes a chore</string>
 	<key>GCM_SENDER_ID</key>
 	<string>507145186375</string>
 	<key>PLIST_VERSION</key>

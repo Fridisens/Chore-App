@@ -8,6 +8,7 @@ struct ChoreRow: View {
     @Binding var completedChores: [String]
     var selectedChild: Child
     var onEdit: (Chore) -> Void
+    var onDelete: (Chore) -> Void
     
     @State private var showConfetti = 0
     
@@ -33,6 +34,14 @@ struct ChoreRow: View {
         }
         .confettiCannon(trigger: $showConfetti)
         .swipeActions {
+            Button(role: .destructive) {
+                print("Trycker på radera för: \(chore.name)")
+                onDelete(chore)
+            } label: {
+                Label("Ta bort", systemImage: "trash")
+            }
+            .tint(.red)
+            
             Button {
                 print("Tryckt på redigera för: \(chore.name)")
                 onEdit(chore)
@@ -78,5 +87,4 @@ struct ChoreRow: View {
             showConfetti += 1
         }
     }
-    
 }
