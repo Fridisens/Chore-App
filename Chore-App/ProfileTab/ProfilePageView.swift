@@ -1,6 +1,7 @@
 import SwiftUI
 import Firebase
 import FirebaseAuth
+import LocalAuthentication
 
 struct ProfilePageView: View {
     @EnvironmentObject var authService: AuthService
@@ -20,109 +21,172 @@ struct ProfilePageView: View {
     @State private var showConfetti = 0
     
     var body: some View {
-            NavigationView {
-                VStack {
-                    ChildPickerView(selectedChild: $selectedChild, children: children)
-                        .padding()
-
-                    if let child = selectedChild {
-                        VStack {
-                            Image(child.avatar)
-                                .resizable()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-
-                            Text(child.name)
-                                .font(.title)
-                        }
-                        .padding(.bottom)
-
-                        AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
-                            .padding()
-
-                        ChoreListView(
-                            chores: chores,
-                            completedChores: $completedChores,
-                            selectedChild: child,
-                            onEdit: { chore in
-                                print("Tryckt på redigera för: \(chore.name)")
-                                selectedChore = chore
-                            }
-                        )
-                        .confettiCannon(trigger: $showConfetti)
+        NavigationView {
+            VStack {
+                ChildPickerView(selectedChild: $selectedChild, children: children)
+                    .padding()
+                
+                if let child = selectedChild {
+                    VStack {
+                        Image(child.avatar)
+                            .resizable()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
                         
-                        Spacer()
-                    }
-                }
-                .onChange(of: selectedChore) { oldValue, newValue in
-                    if let chore = newValue {
-                        print("Redigerar syssla: \(chore.name)")
-                        isEditingChore = true
-                    } else {
-                        print("Ingen syssla vald")
-                    }
-                }
-
-                
-                
-                .navigationTitle("")
-                .navigationBarItems(trailing:
-                    Button(action: { isAddingChild = true }) {
-                        Image(systemName: "person.fill.badge.plus")
-                            .foregroundColor(.purple)
+                        Text(child.name)
                             .font(.title)
                     }
-                )
-                .sheet(isPresented: $isAddingChild) {
-                    AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
+                    .padding(.bottom)
+                    
+                    AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
+                        .padding()
+                    
+                    ChoreListView(
+                        chores: chores,
+                        completedChores: $completedChores,
+                        selectedChild: child,
+                        onEdit: { chore in
+                            print("Tryckt på redigera för: \(chore.name)")
+                            selectedChore = chore
+                        },
+                        onDelete: deleteChore
+                    )
+                    .confettiCannon(trigger: $showConfetti)
+                    
+                    Spacer()
                 }
                 
-                .sheet(isPresented: $isEditingChore) {
-                                if let chore = selectedChore {
-                                    EditChoreView(chore: chore, onSave: updateChore)
-                                        .onAppear {
-                                            print("✅ Öppnar redigeringsvy för: \(chore.name)")
-                                        }
-                                } else {
-                                    Text("Något gick fel! Ingen syssla vald.")
-                                        .onAppear {
-                                            print("Ingen syssla vald vid öppning!")
-                                        }
-                                }
-                            }
-
-
-                
-                .onAppear {
-                    loadChildren()
-                    loadAvatarFromFirebase()
+            }
+            .onChange(of: selectedChore) { oldValue, newValue in
+                if let chore = newValue {
+                    print("Redigerar syssla: \(chore.name)")
+                    isEditingChore = true
+                } else {
+                    print("Ingen syssla vald")
                 }
             }
+            
+            .onChange(of:selectedChild) { oldValue, newValue in
+                if let newChild = newValue {
+                    print("barn bytt till: \(newChild.name) (ID: \(newChild.id))")
+                    loadChores()
+                }
+            }
+            
+            .navigationTitle("")
+            .navigationBarItems(trailing:
+                                    Button(action: { isAddingChild = true }) {
+                Image(systemName: "person.fill.badge.plus")
+                    .foregroundColor(.purple)
+                    .font(.title)
+            }
+            )
+            .sheet(isPresented: $isAddingChild) {
+                AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
+            }
+            
+            .sheet(isPresented: $isEditingChore) {
+                if let chore = selectedChore {
+                    EditChoreView(chore: chore, onSave: updateChore)
+                        .onAppear {
+                            print("✅ Öppnar redigeringsvy för: \(chore.name)")
+                        }
+                } else {
+                    Text("Något gick fel! Ingen syssla vald.")
+                        .onAppear {
+                            print("Ingen syssla vald vid öppning!")
+                        }
+                }
+            }
+            
+            .onAppear {
+                loadChildren()
+                loadAvatarFromFirebase()
+            }
         }
+    }
     
+    
+    
+    private func loadChores() {
+        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(parentId).collection("children").document(childId).collection("chores").getDocuments { snapshot, error in
+            if let error = error {
+                print("Error loading chores: \(error.localizedDescription)")
+                return
+            }
+            
+            self.chores = snapshot?.documents.compactMap { doc in
+                try? doc.data(as: Chore.self)
+            } ?? []
+        }
+    }
     
     private func updateChore(_ chore: Chore) {
-            guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-            
-            let db = Firestore.firestore()
-            let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
-            
-            do {
-                try choreRef.setData(from: chore) { error in
-                    if let error = error {
-                        print("Error updating chore: \(error.localizedDescription)")
-                    } else {
-                        if let index = chores.firstIndex(where: { $0.id == chore.id }) {
-                            chores[index] = chore
-                        }
+        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
+        
+        let db = Firestore.firestore()
+        let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
+        
+        do {
+            try choreRef.setData(from: chore) { error in
+                if let error = error {
+                    print("Error updating chore: \(error.localizedDescription)")
+                } else {
+                    if let index = chores.firstIndex(where: { $0.id == chore.id }) {
+                        chores[index] = chore
                     }
                 }
-            } catch {
-                print("Error encoding chore: \(error.localizedDescription)")
+            }
+        } catch {
+            print("Error encoding chore: \(error.localizedDescription)")
+        }
+    }
+    
+    private func deleteChore(_ chore: Chore) {
+        let context = LAContext()
+        var error: NSError?
+        
+        
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Autentisera för att radera sysslan: \(chore.name)"
+            
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
+                DispatchQueue.main.async {
+                    if success {
+                        
+                        self.confirmDeleteChore(chore)
+                    } else {
+                        print("Face ID/Touch ID autentisering misslyckades.")
+                    }
+                }
+            }
+        } else {
+            print("Face ID/Touch ID är inte tillgängligt på denna enhet.")
+        }
+    }
+    
+    private func confirmDeleteChore(_ chore: Chore) {
+        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
+        
+        let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(childId)
+        
+        childRef.collection("chores").document(chore.id).delete { error in
+            if let error = error {
+                print("Fel vid radering av syssla: \(error.localizedDescription)")
+            } else {
+                print("Syssla raderad: \(chore.name)")
+                
+                DispatchQueue.main.async {
+                    self.chores.removeAll { $0.id == chore.id }
+                }
             }
         }
-    
+    }
     
     private func loadChildren() {
         guard let parentId = authService.user?.id else { return }
@@ -145,21 +209,7 @@ struct ProfilePageView: View {
         }
     }
     
-    private func loadChores() {
-        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(parentId).collection("children").document(childId).collection("chores").getDocuments { snapshot, error in
-            if let error = error {
-                print("Error loading chores: \(error.localizedDescription)")
-                return
-            }
-            
-            self.chores = snapshot?.documents.compactMap { doc in
-                try? doc.data(as: Chore.self)
-            } ?? []
-        }
-    }
+    
     
     private func saveAvatarToFirebase() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
@@ -201,22 +251,6 @@ struct ProfilePageView: View {
                 DispatchQueue.main.async {
                     self.children.removeAll { $0.id == child.id }
                     self.selectedChild = children.first
-                }
-            }
-        }
-    }
-    
-    private func deleteChore(_ chore: Chore) {
-        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-        
-        let db = Firestore.firestore()
-        db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id).delete { error in
-            if let error = error {
-                print("Error deleting chore: \(error.localizedDescription)")
-            } else {
-                print("Chore deleted successfully")
-                DispatchQueue.main.async {
-                    self.chores.removeAll { $0.id == chore.id }
                 }
             }
         }
