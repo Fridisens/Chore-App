@@ -19,13 +19,13 @@ struct ProfilePageView: View {
     @State private var isShowingPasswordSheet = false
     @State private var password = ""
     @State private var showConfetti = 0
-    
+
     var body: some View {
         NavigationView {
             VStack {
                 ChildPickerView(selectedChild: $selectedChild, children: children)
                     .padding()
-                
+
                 if let child = selectedChild {
                     VStack {
                         Image(child.avatar)
@@ -33,15 +33,15 @@ struct ProfilePageView: View {
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-                        
+
                         Text(child.name)
                             .font(.title)
                     }
                     .padding(.bottom)
-                    
+
                     AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
                         .padding()
-                    
+
                     ChoreListView(
                         chores: chores,
                         completedChores: $completedChores,
@@ -53,10 +53,9 @@ struct ProfilePageView: View {
                         onDelete: deleteChore
                     )
                     .confettiCannon(trigger: $showConfetti)
-                    
+
                     Spacer()
                 }
-                
             }
             .onChange(of: selectedChore) { oldValue, newValue in
                 if let chore = newValue {
@@ -67,25 +66,25 @@ struct ProfilePageView: View {
                 }
             }
             
-            .onChange(of:selectedChild) { oldValue, newValue in
+            .onChange(of: selectedChild) { oldValue, newValue in
                 if let newChild = newValue {
-                    print("barn bytt till: \(newChild.name) (ID: \(newChild.id))")
-                    loadChores()
+                    print("Barn bytt till: \(newChild.name) (ID: \(newChild.id))")
+                    listenToChores(for: newChild)
                 }
             }
             
             .navigationTitle("")
             .navigationBarItems(trailing:
-                                    Button(action: { isAddingChild = true }) {
-                Image(systemName: "person.fill.badge.plus")
-                    .foregroundColor(.purple)
-                    .font(.title)
-            }
+                Button(action: { isAddingChild = true }) {
+                    Image(systemName: "person.fill.badge.plus")
+                        .foregroundColor(.purple)
+                        .font(.title)
+                }
             )
             .sheet(isPresented: $isAddingChild) {
                 AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
             }
-            
+
             .sheet(isPresented: $isEditingChore) {
                 if let chore = selectedChore {
                     EditChoreView(chore: chore, onSave: updateChore)
@@ -99,13 +98,26 @@ struct ProfilePageView: View {
                         }
                 }
             }
-            
+
             .onAppear {
                 loadChildren()
                 loadAvatarFromFirebase()
+                
+                if let child = selectedChild {
+                    listenToChores(for: child)
+                }
             }
         }
     }
+    
+    private func listenToChores(for child: Child) {
+            guard let parentId = authService.user?.id else { return }
+            
+            firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
+                self.chores = fetchedChores
+                print("🔄 Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
+            }
+        }
     
     
     
@@ -127,22 +139,25 @@ struct ProfilePageView: View {
     
     private func updateChore(_ chore: Chore) {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-        
+
         let db = Firestore.firestore()
         let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
-        
-        do {
-            try choreRef.setData(from: chore) { error in
-                if let error = error {
-                    print("Error updating chore: \(error.localizedDescription)")
-                } else {
-                    if let index = chores.firstIndex(where: { $0.id == chore.id }) {
-                        chores[index] = chore
-                    }
+
+        choreRef.setData([
+            "name": chore.name,
+            "value": chore.value,
+            "completed": chore.completed,
+            "assignedBy": chore.assignedBy,
+            "rewardType": chore.rewardType,
+            "days": chore.days
+        ], merge: true) { error in
+            if let error = error {
+                print("Error updating chore: \(error.localizedDescription)")
+            } else {
+                if let index = chores.firstIndex(where: { $0.id == chore.id }) {
+                    chores[index] = chore
                 }
             }
-        } catch {
-            print("Error encoding chore: \(error.localizedDescription)")
         }
     }
     
