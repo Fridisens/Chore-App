@@ -12,11 +12,13 @@ struct ChoreListView: View {
     private var today: String {
         getToday()
     }
-    
+
     var body: some View {
         List {
             Section(header: Text("Dagens sysslor")) {
-                ForEach(chores.filter { $0.days.contains(today) }) { chore in
+                let todayChores = chores.filter { $0.days.contains(today) }
+
+                ForEach(todayChores) { chore in
                     ChoreRow(
                         chore: chore,
                         completedChores: $completedChores,
@@ -27,12 +29,25 @@ struct ChoreListView: View {
                 }
             }
         }
+        .onAppear {
+            debugLog()
+        }
     }
     
     private func getToday() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "sv_SE")
-        formatter.dateFormat = "E"  // Returnerar "Mån", "Tis", osv.
-        return formatter.string(from: Date())
+        formatter.dateFormat = "E"
+        return formatter.string(from: Date()).capitalized
+    }
+
+
+    private func debugLog() {
+        print("Mottagna sysslor i ChoreListView:", chores.map { "\($0.name) - Dagar: \($0.days)" })
+        print("Dagens dag: \(today)")
+        let todayChores = chores.filter { $0.days.contains(today) }
+        for chore in todayChores {
+            print("Visar syssla: \(chore.name) på \(chore.days) - Idag är: \(today)")
+        }
     }
 }

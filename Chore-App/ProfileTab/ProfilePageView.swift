@@ -25,7 +25,7 @@ struct ProfilePageView: View {
             VStack {
                 ChildPickerView(selectedChild: $selectedChild, children: children)
                     .padding()
-
+                
                 if let child = selectedChild {
                     VStack {
                         Image(child.avatar)
@@ -33,15 +33,16 @@ struct ProfilePageView: View {
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-
+                        
                         Text(child.name)
                             .font(.title)
                     }
                     .padding(.bottom)
-
+                    
                     AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
                         .padding()
-
+                    
+                    
                     ChoreListView(
                         chores: chores,
                         completedChores: $completedChores,
@@ -53,7 +54,7 @@ struct ProfilePageView: View {
                         onDelete: deleteChore
                     )
                     .confettiCannon(trigger: $showConfetti)
-
+                    
                     Spacer()
                 }
             }
@@ -75,21 +76,21 @@ struct ProfilePageView: View {
             
             .navigationTitle("")
             .navigationBarItems(trailing:
-                Button(action: { isAddingChild = true }) {
-                    Image(systemName: "person.fill.badge.plus")
-                        .foregroundColor(.purple)
-                        .font(.title)
-                }
+                                    Button(action: { isAddingChild = true }) {
+                Image(systemName: "person.fill.badge.plus")
+                    .foregroundColor(.purple)
+                    .font(.title)
+            }
             )
             .sheet(isPresented: $isAddingChild) {
                 AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
             }
-
+            
             .sheet(isPresented: $isEditingChore) {
                 if let chore = selectedChore {
                     EditChoreView(chore: chore, onSave: updateChore)
                         .onAppear {
-                            print("✅ Öppnar redigeringsvy för: \(chore.name)")
+                            print("Öppnar redigeringsvy för: \(chore.name)")
                         }
                 } else {
                     Text("Något gick fel! Ingen syssla vald.")
@@ -98,24 +99,29 @@ struct ProfilePageView: View {
                         }
                 }
             }
-
+            
             .onAppear {
+                print("Sysslor skickade till ChoreListView:", chores.map { "\($0.name) - Dagar: \($0.days)" })
                 loadChildren()
                 loadAvatarFromFirebase()
                 
                 if let child = selectedChild {
-                    listenToChores(for: child)
+                    firestoreService.listenToChores(for: authService.user?.id ?? "", childId: child.id) { fetchedChores in
+                        print("Uppdaterar sysslor i ProfilePageView:", fetchedChores.map { "\($0.name) - Dagar: \($0.days)" })
+                        self.chores = fetchedChores
+                    }
                 }
             }
         }
     }
+    
     
     private func listenToChores(for child: Child) {
             guard let parentId = authService.user?.id else { return }
             
             firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
                 self.chores = fetchedChores
-                print("🔄 Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
+                print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
             }
         }
     

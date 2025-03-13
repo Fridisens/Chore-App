@@ -55,7 +55,7 @@ class FirestoreService: ObservableObject {
                     completion([])
                     return
                 }
-
+                
                 let fetchedChores = snapshot?.documents.compactMap { doc -> Chore? in
                     var chore = try? doc.data(as: Chore.self)
                     if chore?.days == nil {
@@ -63,7 +63,9 @@ class FirestoreService: ObservableObject {
                     }
                     return chore
                 } ?? []
-
+                
+                print("HÄMTADE SYSSLOR FRÅN FIREBASE:", fetchedChores.map { "\($0.name) - Dagar: \($0.days)" })
+                
                 DispatchQueue.main.async {
                     completion(fetchedChores)
                 }
