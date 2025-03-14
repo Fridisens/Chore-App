@@ -19,101 +19,156 @@ struct ProfilePageView: View {
     @State private var isShowingPasswordSheet = false
     @State private var password = ""
     @State private var showConfetti = 0
+    @State private var weeklyGoal: String = ""
 
     var body: some View {
         NavigationView {
             VStack {
-                ChildPickerView(selectedChild: $selectedChild, children: children)
-                    .padding()
-                
-                if let child = selectedChild {
+                if children.isEmpty {
                     VStack {
-                        Image(child.avatar)
-                            .resizable()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
+                        Text("Inga barn tillagda ännu!")
+                            .font(.title2)
+                            .padding()
                         
-                        Text(child.name)
-                            .font(.title)
+                        Button(action: {
+                            isAddingChild = true
+                        }) {
+                            Label("Lägg till barn", systemImage: "person.fill.badge.plus")
+                                .padding()
+                                .background(Color.purple)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                     }
-                    .padding(.bottom)
+                    .padding()
+                } else {
                     
-                    AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
+                    ChildPickerView(selectedChild: $selectedChild, children: children)
                         .padding()
                     
-                    
-                    ChoreListView(
-                        chores: chores,
-                        completedChores: $completedChores,
-                        selectedChild: child,
-                        onEdit: { chore in
-                            print("Tryckt på redigera för: \(chore.name)")
-                            selectedChore = chore
-                        },
-                        onDelete: deleteChore
-                    )
-                    .confettiCannon(trigger: $showConfetti)
-                    
-                    Spacer()
-                }
-            }
-            .onChange(of: selectedChore) { oldValue, newValue in
-                if let chore = newValue {
-                    print("Redigerar syssla: \(chore.name)")
-                    isEditingChore = true
-                } else {
-                    print("Ingen syssla vald")
-                }
-            }
-            
-            .onChange(of: selectedChild) { oldValue, newValue in
-                if let newChild = newValue {
-                    print("Barn bytt till: \(newChild.name) (ID: \(newChild.id))")
-                    listenToChores(for: newChild)
-                }
-            }
-            
-            .navigationTitle("")
-            .navigationBarItems(trailing:
-                                    Button(action: { isAddingChild = true }) {
-                Image(systemName: "person.fill.badge.plus")
-                    .foregroundColor(.purple)
-                    .font(.title)
-            }
-            )
-            .sheet(isPresented: $isAddingChild) {
-                AddChildView(onChildAdded: loadChildren, isAddingChild: $isAddingChild)
-            }
-            
-            .sheet(isPresented: $isEditingChore) {
-                if let chore = selectedChore {
-                    EditChoreView(chore: chore, onSave: updateChore)
-                        .onAppear {
-                            print("Öppnar redigeringsvy för: \(chore.name)")
+                    if let child = selectedChild {
+                        VStack {
+                            Image(child.avatar)
+                                .resizable()
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.purple, lineWidth: 3))
+                            
+                            Text(child.name)
+                                .font(.title)
+                            
+                            // 🔹 Veckomål-fält
+                            HStack {
+                                Text("Veckans mål:")
+                                TextField("Ange mål", text: $weeklyGoal)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .keyboardType(.numberPad)
+                                    .frame(width: 60)
+                                
+                                Button("Spara") {
+                                    saveWeeklyGoal()
+                                }
+                                .padding()
+                                .background(Color.purple)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                            }
+                            .padding()
+                            
+                            Text("Saldo: \(child.balance) SEK")
+                                .font(.headline)
+                                .foregroundColor(.purple)
+                                .padding(.top, 5)
                         }
-                } else {
-                    Text("Något gick fel! Ingen syssla vald.")
-                        .onAppear {
-                            print("Ingen syssla vald vid öppning!")
-                        }
+                        
+                        AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
+                            .padding()
+                        
+                        ChoreListView(
+                            chores: chores,
+                            completedChores: $completedChores,
+                            selectedChild: child,
+                            onEdit: { chore in
+                                print("Tryckt på redigera för: \(chore.name)")
+                                selectedChore = chore
+                            },
+                            onDelete: deleteChore,
+                            onBalanceUpdate: updateSelectedChildBalance
+                        )
+                        .confettiCannon(trigger: $showConfetti)
+                        
+                        Spacer()
+                    }
                 }
             }
-            
             .onAppear {
-                print("Sysslor skickade till ChoreListView:", chores.map { "\($0.name) - Dagar: \($0.days)" })
                 loadChildren()
                 loadAvatarFromFirebase()
+                addMissingWeeklyGoal()
                 
                 if let child = selectedChild {
-                    firestoreService.listenToChores(for: authService.user?.id ?? "", childId: child.id) { fetchedChores in
-                        print("Uppdaterar sysslor i ProfilePageView:", fetchedChores.map { "\($0.name) - Dagar: \($0.days)" })
-                        self.chores = fetchedChores
+                    weeklyGoal = String(child.weeklyGoal)
+                    listenToChores(for: child)
+                }
+            }
+            .sheet(isPresented: $isAddingChild) {
+                AddChildView(onChildAdded: {
+                    loadChildren() // 🔄 Ladda om barn efter tillägg
+                    isAddingChild = false
+                }, isAddingChild: $isAddingChild)
+            }
+        }
+    }
+    
+    private func addMissingWeeklyGoal() {
+        guard let parentId = authService.user?.id else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
+            if let error = error {
+                print("Fel vid uppdatering av barn: \(error.localizedDescription)")
+                return
+            }
+            
+            for document in snapshot?.documents ?? [] {
+                let childRef = db.collection("users").document(parentId).collection("children").document(document.documentID)
+                
+                if document.data()["weeklyGoal"] == nil {
+                    childRef.updateData(["weeklyGoal": 50]) { error in
+                        if let error = error {
+                            print("Fel vid tillägg av weeklyGoal: \(error.localizedDescription)")
+                        } else {
+                            print("Lagt till weeklyGoal för \(document.documentID)")
+                        }
                     }
                 }
             }
         }
     }
+
+
+  
+    private func saveWeeklyGoal() {
+        guard let parentId = authService.user?.id, let child = selectedChild else { return }
+        guard let goal = Int(weeklyGoal) else { return }
+        
+        let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+        
+        childRef.updateData(["weeklyGoal": goal]) { error in
+            if let error = error {
+                print("❌ Fel vid uppdatering av veckomål: \(error.localizedDescription)")
+            } else {
+                print("✅ Veckomål uppdaterat till \(goal) SEK")
+                DispatchQueue.main.async {
+                    self.selectedChild?.weeklyGoal = goal
+                }
+            }
+        }
+    }
+
+    
+    
     
     
     private func listenToChores(for child: Child) {
@@ -209,37 +264,93 @@ struct ProfilePageView: View {
         }
     }
     
-    private func loadChildren() {
-        guard let parentId = authService.user?.id else { return }
+    func updateSelectedChildBalance() {
+        guard let parentId = Auth.auth().currentUser?.uid, let child = selectedChild else { return }
         let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+
+        childRef.getDocument { snapshot, error in
+            if let error = error {
+                print("❌ Fel vid hämtning av saldo: \(error.localizedDescription)")
+                return
+            }
+            
+            if let data = snapshot?.data(), let newBalance = data["balance"] as? Int,
+            let newGoal = data["weeklyGoal"] as? Int {
+                DispatchQueue.main.async {
+                    self.selectedChild = Child(
+                        id: child.id,
+                        name: child.name,
+                        avatar: child.avatar,
+                        balance: newBalance,
+                        weeklyGoal: newGoal
+                    )
+                    print("🔄 Uppdaterat saldo i ProfilePageView: \(newBalance) kr")
+                }
+            }
+        }
+    }
+
+    
+    private func loadChildren() {
+        guard let parentId = authService.user?.id else {
+            print("❌ Ingen användare inloggad!")
+            return
+        }
         
+        let db = Firestore.firestore()
         db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
             if let error = error {
-                print("Error loading children: \(error.localizedDescription)")
+                print("❌ Fel vid hämtning av barn: \(error.localizedDescription)")
                 return
             }
             
             self.children = snapshot?.documents.compactMap { doc in
-                try? doc.data(as: Child.self)
+                let data = doc.data()
+                guard let name = data["name"] as? String,
+                      let avatar = data["avatar"] as? String,
+                      let balance = data["balance"] as? Int,
+                      let weeklyGoal = data["weeklyGoal"] as? Int else {
+                    print("⚠️ Saknade fält i dokumentet: \(data)")
+                    return nil
+                }
+                
+                return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, weeklyGoal: weeklyGoal)
             } ?? []
             
-            if selectedChild == nil, !children.isEmpty {
-                selectedChild = children.first
-                loadChores()
+            DispatchQueue.main.async {
+                print("📥 Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
+                
+                if self.children.isEmpty {
+                    print("⚠️ Inga barn hittades i Firestore!")
+                    self.selectedChild = nil
+                } else {
+                    // Om inget barn är valt, välj det första i listan
+                    if self.selectedChild == nil {
+                        self.selectedChild = self.children.first
+                        print("🎯 Valde barn: \(self.selectedChild?.name ?? "Ingen")")
+                    }
+                }
             }
         }
     }
-    
+
     
     
     private func saveAvatarToFirebase() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
+        
         let db = Firestore.firestore()
         db.collection("users").document(parentId).collection("children").document(childId).updateData(["avatar": selectedAvatar]) { error in
             if let error = error {
                 print("Error saving avatar: \(error.localizedDescription)")
             } else {
-                print("Avatar saved successfully!")
+                print("✅ Avatar saved successfully!")
+                
+                // 🔥 Uppdatera UI direkt
+                DispatchQueue.main.async {
+                    self.selectedChild?.avatar = self.selectedAvatar
+                }
             }
         }
     }
