@@ -9,9 +9,10 @@ struct ChoreRow: View {
     var selectedChild: Child
     var onEdit: (Chore) -> Void
     var onDelete: (Chore) -> Void
+    var onBalanceUpdate: () -> Void
     
     @State private var showConfetti = 0
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
@@ -51,32 +52,39 @@ struct ChoreRow: View {
             .tint(.blue)
         }
     }
-    
+
     private func toggleChoreCompletion() {
         guard let parentId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(selectedChild.id)
         let choreRef = childRef.collection("chores").document(chore.id)
 
-        print("📌 Försöker uppdatera syssla: \(chore.name) (ID: \(chore.id))")
-
         if completedChores.contains(chore.id) {
             completedChores.removeAll { $0 == chore.id }
             choreRef.updateData(["completed": 0])
+            
+            childRef.updateData(["balance": FieldValue.increment(-Int64(chore.value))]) { error in
+                if let error = error {
+                    print("❌ Fel vid minskning av saldo: \(error.localizedDescription)")
+                } else {
+                    print("💰 Saldot minskat med \(chore.value) kr")
+                    onBalanceUpdate() // 🔄 Be ProfilePageView att uppdatera saldot
+                }
+            }
         } else {
             completedChores.append(chore.id)
             choreRef.updateData(["completed": 1])
-        }
-    
+            
             childRef.updateData(["balance": FieldValue.increment(Int64(chore.value))]) { error in
                 if let error = error {
-                    print("Fel vid uppdatering av saldo: \(error.localizedDescription)")
+                    print("❌ Fel vid ökning av saldo: \(error.localizedDescription)")
                 } else {
-                    print("Saldot uppdaterat (plus \(chore.value) kr)")
+                    print("💰 Saldot ökat med \(chore.value) kr")
+                    onBalanceUpdate() // 🔄 Be ProfilePageView att uppdatera saldot
                 }
             }
             
             showConfetti += 1
         }
     }
-
+}

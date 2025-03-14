@@ -38,14 +38,20 @@ struct AddChildView: View {
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document()
         
-        let newChild = Child(id: childRef.documentID, name: childName, avatar: "avatar1", balance: 0)
-        
+        let newChild = Child(
+            id: childRef.documentID,
+            name: childName,
+            avatar: "avatar1",
+            balance: 0,
+            weeklyGoal: 50 // 🔹 Standardmål för nya barn
+        )
         
         do {
             try childRef.setData(from: newChild) { error in
                 if let error = error {
                     print("Error adding child: \(error.localizedDescription)")
                 } else {
+                    print("✅ Barn tillagt: \(newChild.name) med veckomål \(newChild.weeklyGoal) SEK")
                     onChildAdded()
                     isAddingChild = false
                 }

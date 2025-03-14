@@ -8,6 +8,7 @@ struct ChoreListView: View {
     var selectedChild: Child
     var onEdit: (Chore) -> Void
     var onDelete: (Chore) -> Void
+    var onBalanceUpdate: () -> Void
     
     private var today: String {
         getToday()
@@ -24,7 +25,8 @@ struct ChoreListView: View {
                         completedChores: $completedChores,
                         selectedChild: selectedChild,
                         onEdit: onEdit,
-                        onDelete: onDelete
+                        onDelete: onDelete,
+                        onBalanceUpdate: onBalanceUpdate
                     )
                 }
             }
