@@ -3,9 +3,9 @@ import Foundation
 struct Task: Identifiable, Codable {
     var id: String
     var name: String
-    var assignedBy: String
+    var time: String
     var days: [String]
-    var frequency: Int
     var completed: Int
+    var assignedBy: String
     
 }

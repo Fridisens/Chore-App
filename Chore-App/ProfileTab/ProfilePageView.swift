@@ -43,8 +43,12 @@ struct ProfilePageView: View {
                     .padding()
                 } else {
                     
-                    ChildPickerView(selectedChild: $selectedChild, children: children)
-                        .padding()
+                    HStack {
+                        ChildPickerView(selectedChild: $selectedChild, children: children) {
+                            isAddingChild = true
+                        }
+                            .padding()
+                    }
                     
                     if let child = selectedChild {
                         VStack {
@@ -57,7 +61,7 @@ struct ProfilePageView: View {
                             Text(child.name)
                                 .font(.title)
                             
-                            // 🔹 Veckomål-fält
+                        
                             HStack {
                                 Text("Veckans mål:")
                                 TextField("Ange mål", text: $weeklyGoal)
@@ -74,11 +78,6 @@ struct ProfilePageView: View {
                                 .cornerRadius(10)
                             }
                             .padding()
-                            
-                            Text("Saldo: \(child.balance) SEK")
-                                .font(.headline)
-                                .foregroundColor(.purple)
-                                .padding(.top, 5)
                         }
                         
                         AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
@@ -113,7 +112,7 @@ struct ProfilePageView: View {
             }
             .sheet(isPresented: $isAddingChild) {
                 AddChildView(onChildAdded: {
-                    loadChildren() // 🔄 Ladda om barn efter tillägg
+                    loadChildren()
                     isAddingChild = false
                 }, isAddingChild: $isAddingChild)
             }
@@ -157,9 +156,9 @@ struct ProfilePageView: View {
         
         childRef.updateData(["weeklyGoal": goal]) { error in
             if let error = error {
-                print("❌ Fel vid uppdatering av veckomål: \(error.localizedDescription)")
+                print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
             } else {
-                print("✅ Veckomål uppdaterat till \(goal) SEK")
+                print("Veckomål uppdaterat till \(goal) SEK")
                 DispatchQueue.main.async {
                     self.selectedChild?.weeklyGoal = goal
                 }
@@ -271,7 +270,7 @@ struct ProfilePageView: View {
 
         childRef.getDocument { snapshot, error in
             if let error = error {
-                print("❌ Fel vid hämtning av saldo: \(error.localizedDescription)")
+                print("Fel vid hämtning av saldo: \(error.localizedDescription)")
                 return
             }
             
@@ -285,7 +284,7 @@ struct ProfilePageView: View {
                         balance: newBalance,
                         weeklyGoal: newGoal
                     )
-                    print("🔄 Uppdaterat saldo i ProfilePageView: \(newBalance) kr")
+                    print("Uppdaterat saldo i ProfilePageView: \(newBalance) kr")
                 }
             }
         }
@@ -294,14 +293,14 @@ struct ProfilePageView: View {
     
     private func loadChildren() {
         guard let parentId = authService.user?.id else {
-            print("❌ Ingen användare inloggad!")
+            print("Ingen användare inloggad!")
             return
         }
         
         let db = Firestore.firestore()
         db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
             if let error = error {
-                print("❌ Fel vid hämtning av barn: \(error.localizedDescription)")
+                print("Fel vid hämtning av barn: \(error.localizedDescription)")
                 return
             }
             
@@ -311,7 +310,7 @@ struct ProfilePageView: View {
                       let avatar = data["avatar"] as? String,
                       let balance = data["balance"] as? Int,
                       let weeklyGoal = data["weeklyGoal"] as? Int else {
-                    print("⚠️ Saknade fält i dokumentet: \(data)")
+                    print("Saknade fält i dokumentet: \(data)")
                     return nil
                 }
                 
@@ -319,16 +318,16 @@ struct ProfilePageView: View {
             } ?? []
             
             DispatchQueue.main.async {
-                print("📥 Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
+                print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
                 
                 if self.children.isEmpty {
-                    print("⚠️ Inga barn hittades i Firestore!")
+                    print("Inga barn hittades i Firestore!")
                     self.selectedChild = nil
                 } else {
                     // Om inget barn är valt, välj det första i listan
                     if self.selectedChild == nil {
                         self.selectedChild = self.children.first
-                        print("🎯 Valde barn: \(self.selectedChild?.name ?? "Ingen")")
+                        print("Valde barn: \(self.selectedChild?.name ?? "Ingen")")
                     }
                 }
             }
@@ -345,7 +344,7 @@ struct ProfilePageView: View {
             if let error = error {
                 print("Error saving avatar: \(error.localizedDescription)")
             } else {
-                print("✅ Avatar saved successfully!")
+                print("Avatar saved successfully!")
                 
                 // 🔥 Uppdatera UI direkt
                 DispatchQueue.main.async {
