@@ -15,9 +15,6 @@ struct ProfilePageView: View {
     @State private var completedChores: [String] = []
     @State private var isAddingChild = false
     @State private var selectedAvatar: String = "avatar1"
-    @State private var isShowingLogoutAlert = false
-    @State private var isShowingPasswordSheet = false
-    @State private var password = ""
     @State private var showConfetti = 0
     @State private var weeklyGoal: String = ""
 
@@ -30,9 +27,7 @@ struct ProfilePageView: View {
                             .font(.title2)
                             .padding()
                         
-                        Button(action: {
-                            isAddingChild = true
-                        }) {
+                        Button(action: { isAddingChild = true }) {
                             Label("Lägg till barn", systemImage: "person.fill.badge.plus")
                                 .padding()
                                 .background(Color.purple)
@@ -42,12 +37,12 @@ struct ProfilePageView: View {
                     }
                     .padding()
                 } else {
-                    
+                    // 🔹 Barnväljare
                     HStack {
                         ChildPickerView(selectedChild: $selectedChild, children: children) {
                             isAddingChild = true
                         }
-                            .padding()
+                        .padding()
                     }
                     
                     if let child = selectedChild {
@@ -61,22 +56,7 @@ struct ProfilePageView: View {
                             Text(child.name)
                                 .font(.title)
                             
-                        
-                            HStack {
-                                Text("Veckans mål:")
-                                TextField("Ange mål", text: $weeklyGoal)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .keyboardType(.numberPad)
-                                    .frame(width: 60)
-                                
-                                Button("Spara") {
-                                    saveWeeklyGoal()
-                                }
-                                .padding()
-                                .background(Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                            }
+                            
                             .padding()
                         }
                         
@@ -89,7 +69,6 @@ struct ProfilePageView: View {
                             selectedChild: child,
                             onEdit: { chore in
                                 print("Tryckt på redigera för: \(chore.name)")
-                                selectedChore = chore
                             },
                             onDelete: deleteChore,
                             onBalanceUpdate: updateSelectedChildBalance
@@ -104,9 +83,10 @@ struct ProfilePageView: View {
                 loadChildren()
                 loadAvatarFromFirebase()
                 addMissingWeeklyGoal()
-                
-                if let child = selectedChild {
-                    weeklyGoal = String(child.weeklyGoal)
+            }
+            .onChange(of: selectedChild) { _, newChild in
+                if let child = newChild {
+                    print("Barn bytt till: \(child.name) (ID: \(child.id)), laddar sysslor...")
                     listenToChores(for: child)
                 }
             }
@@ -118,6 +98,7 @@ struct ProfilePageView: View {
             }
         }
     }
+
     
     private func addMissingWeeklyGoal() {
         guard let parentId = authService.user?.id else { return }
@@ -148,36 +129,37 @@ struct ProfilePageView: View {
 
   
     private func saveWeeklyGoal() {
-        guard let parentId = authService.user?.id, let child = selectedChild else { return }
-        guard let goal = Int(weeklyGoal) else { return }
-        
-        let db = Firestore.firestore()
-        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-        
-        childRef.updateData(["weeklyGoal": goal]) { error in
-            if let error = error {
-                print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
-            } else {
-                print("Veckomål uppdaterat till \(goal) SEK")
-                DispatchQueue.main.async {
-                    self.selectedChild?.weeklyGoal = goal
+            guard let parentId = authService.user?.id, let child = selectedChild else { return }
+            guard let goal = Int(weeklyGoal) else { return }
+            
+            let db = Firestore.firestore()
+            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+            
+            childRef.updateData(["weeklyGoal": goal]) { error in
+                if let error = error {
+                    print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
+                } else {
+                    DispatchQueue.main.async {
+                        self.selectedChild?.weeklyGoal = goal
+                    }
                 }
             }
         }
-    }
-
+    
     
     
     
     
     private func listenToChores(for child: Child) {
-            guard let parentId = authService.user?.id else { return }
-            
-            firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
-                self.chores = fetchedChores
-                print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
-            }
-        }
+           guard let parentId = authService.user?.id else { return }
+           
+           firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
+               DispatchQueue.main.async {
+                   self.chores = fetchedChores
+                   print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
+               }
+           }
+       }
     
     
     
@@ -274,8 +256,10 @@ struct ProfilePageView: View {
                 return
             }
             
-            if let data = snapshot?.data(), let newBalance = data["balance"] as? Int,
-            let newGoal = data["weeklyGoal"] as? Int {
+            if let data = snapshot?.data(),
+               let newBalance = data["balance"] as? Int,
+               let newGoal = data["weeklyGoal"] as? Int {
+                
                 DispatchQueue.main.async {
                     self.selectedChild = Child(
                         id: child.id,
@@ -284,57 +268,43 @@ struct ProfilePageView: View {
                         balance: newBalance,
                         weeklyGoal: newGoal
                     )
-                    print("Uppdaterat saldo i ProfilePageView: \(newBalance) kr")
+                    print("Uppdaterat saldo: \(newBalance) kr")
                 }
             }
         }
     }
 
+
+
     
     private func loadChildren() {
-        guard let parentId = authService.user?.id else {
-            print("Ingen användare inloggad!")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
-            if let error = error {
-                print("Fel vid hämtning av barn: \(error.localizedDescription)")
-                return
-            }
+            guard let parentId = authService.user?.id else { return }
+            let db = Firestore.firestore()
             
-            self.children = snapshot?.documents.compactMap { doc in
-                let data = doc.data()
-                guard let name = data["name"] as? String,
-                      let avatar = data["avatar"] as? String,
-                      let balance = data["balance"] as? Int,
-                      let weeklyGoal = data["weeklyGoal"] as? Int else {
-                    print("Saknade fält i dokumentet: \(data)")
-                    return nil
+            db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
+                if let error = error {
+                    print("Fel vid hämtning av barn: \(error.localizedDescription)")
+                    return
                 }
                 
-                return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, weeklyGoal: weeklyGoal)
-            } ?? []
-            
-            DispatchQueue.main.async {
-                print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
+                self.children = snapshot?.documents.compactMap { doc in
+                    try? doc.data(as: Child.self)
+                } ?? []
                 
-                if self.children.isEmpty {
-                    print("Inga barn hittades i Firestore!")
-                    self.selectedChild = nil
-                } else {
-                    // Om inget barn är valt, välj det första i listan
-                    if self.selectedChild == nil {
+                DispatchQueue.main.async {
+                    print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
+                    
+                    if self.children.isEmpty {
+                        self.selectedChild = nil
+                    } else if self.selectedChild == nil {
                         self.selectedChild = self.children.first
-                        print("Valde barn: \(self.selectedChild?.name ?? "Ingen")")
+                        if let firstChild = self.selectedChild {
+                            listenToChores(for: firstChild)
+                        }
                     }
                 }
             }
         }
-    }
-
-    
     
     private func saveAvatarToFirebase() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
@@ -346,7 +316,6 @@ struct ProfilePageView: View {
             } else {
                 print("Avatar saved successfully!")
                 
-                // 🔥 Uppdatera UI direkt
                 DispatchQueue.main.async {
                     self.selectedChild?.avatar = self.selectedAvatar
                 }
