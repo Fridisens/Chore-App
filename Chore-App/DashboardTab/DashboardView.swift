@@ -9,11 +9,14 @@ struct DashboardView: View {
     @State private var moneyEarned: Int = 0
     @State private var screenTimeEarned: Int = 0
     @State private var isShowingAddItemView = false
-    @State private var weeklyGoal: Int = 50
+    @State private var weeklyMoneyGoal: Int = 50
+    @State private var weeklyScreenTimeGoal: Int = 60
+    @State private var isEditingMoneyGoal = false
+    @State private var isEditingScreenTimeGoal = false
     
     var body: some View {
         VStack {
-            
+        
             ChildPickerView(selectedChild: $selectedChild, children: children) {
                 isShowingAddItemView = true
             }
@@ -25,57 +28,61 @@ struct DashboardView: View {
                         .font(.largeTitle)
                         .padding(.bottom, 10)
                     
-                    
+               
                     HStack(spacing: 40) {
                         VStack {
-                            ProgressRing(progress: CGFloat(moneyEarned) / CGFloat(weeklyGoal))
-                                .frame(width: 120, height: 120)
-                                .overlay(
-                                    VStack {
-                                        Text("\(moneyEarned) / \(weeklyGoal) SEK")
-                                            .font(.caption)
-                                            .bold()
+                            ZStack {
+                                ProgressRing(progress: CGFloat(moneyEarned) / CGFloat(weeklyMoneyGoal))
+                                    .frame(width: 120, height: 120)
+                                
+                                VStack {
+                                    Text("\(moneyEarned) / \(weeklyMoneyGoal) SEK")
+                                        .font(.caption)
+                                        .bold()
+                                    
+                                    Button(action: { isEditingMoneyGoal = true }) {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .foregroundColor(.purple)
+                                            .font(.title2)
                                     }
-                                )
+                                    .padding(.top, 5)
+                                    .sheet(isPresented: $isEditingMoneyGoal) {
+                                        GoalEditView(title: "Ändra veckans mål för pengar", goal: $weeklyMoneyGoal, onSave: saveMoneyGoal)
+                                    }
+                                }
+                            }
                             Text("Intjänade pengar")
                                 .font(.headline)
                         }
-                        
+
                         VStack {
-                            ProgressRing(progress: CGFloat(screenTimeEarned) / CGFloat(weeklyGoal))
-                                .frame(width: 120, height: 120)
-                                .overlay(
-                                    VStack {
-                                        Text("\(screenTimeEarned) / \(weeklyGoal) min")
-                                            .font(.caption)
-                                            .bold()
+                            ZStack {
+                                ProgressRing(progress: CGFloat(screenTimeEarned) / CGFloat(weeklyScreenTimeGoal))
+                                    .frame(width: 120, height: 120)
+                                
+                                VStack {
+                                    Text("\(screenTimeEarned) / \(weeklyScreenTimeGoal) min")
+                                        .font(.caption)
+                                        .bold()
+                                    
+                                    Button(action: { isEditingScreenTimeGoal = true }) {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .foregroundColor(.purple)
+                                            .font(.title2)
                                     }
-                                )
+                                    .padding(.top, 5)
+                                    .sheet(isPresented: $isEditingScreenTimeGoal) {
+                                        GoalEditView(title: "Ändra veckans mål för skärmtid", goal: $weeklyScreenTimeGoal, onSave: saveScreenTimeGoal)
+                                    }
+                                }
+                            }
                             Text("Skärmtid")
                                 .font(.headline)
                         }
                     }
                     .padding()
-                    
-                    HStack {
-                        Text("Veckans mål:")
-                            .font(.headline)
-                        
-                        TextField("Mål", value: $weeklyGoal, formatter: NumberFormatter())
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.numberPad)
-                            .frame(width: 60)
-                        
-                        Button("Spara") {
-                            saveWeeklyGoal()
-                        }
-                        .padding(8)
-                        .background(Color.purple)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .padding()
-                    
+
+                
                     Button(action: {
                         isShowingAddItemView = true
                     }) {
@@ -156,10 +163,41 @@ struct DashboardView: View {
             
             if selectedChild == nil, !children.isEmpty {
                 selectedChild = children.first
-                weeklyGoal = selectedChild?.weeklyGoal ?? 50
+                weeklyMoneyGoal = selectedChild?.weeklyGoal ?? 50
             }
         }
     }
+    
+    private func saveScreenTimeGoal() {
+            guard let parentId = authService.user?.id, let child = selectedChild else { return }
+            
+            let db = Firestore.firestore()
+            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+            
+            childRef.updateData(["weeklyScreenTimeGoal": weeklyScreenTimeGoal]) { error in
+                if let error = error {
+                    print("Fel vid uppdatering av veckomål för skärmtid: \(error.localizedDescription)")
+                } else {
+                    print("Veckans mål för skärmtid uppdaterat till \(weeklyScreenTimeGoal) min")
+                }
+            }
+        }
+    
+    
+    private func saveMoneyGoal() {
+            guard let parentId = authService.user?.id, let child = selectedChild else { return }
+            
+            let db = Firestore.firestore()
+            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+            
+            childRef.updateData(["weeklyMoneyGoal": weeklyMoneyGoal]) { error in
+                if let error = error {
+                    print("Fel vid uppdatering av veckomål för pengar: \(error.localizedDescription)")
+                } else {
+                    print( "Veckans mål för pengar uppdaterat till \(weeklyMoneyGoal) SEK")
+                }
+            }
+        }
     
     private func updateChildProgress() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
@@ -207,11 +245,11 @@ struct DashboardView: View {
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
         
-        childRef.updateData(["weeklyGoal": weeklyGoal]) { error in
+        childRef.updateData(["weeklyGoal": weeklyMoneyGoal]) { error in
             if let error = error {
                 print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
             } else {
-                print("Veckomål uppdaterat till \(weeklyGoal) SEK")
+                print("Veckomål uppdaterat till \(weeklyMoneyGoal) SEK")
             }
         }
     }
