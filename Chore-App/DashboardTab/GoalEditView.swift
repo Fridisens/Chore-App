@@ -16,6 +16,7 @@ struct GoalEditView: View {
                 TextField("Ange nytt mål", value: $goal, formatter: NumberFormatter())
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .keyboardType(.numberPad)
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                     .padding()
 
                 Button("Spara") {

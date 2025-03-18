@@ -14,6 +14,7 @@ struct AddChildView: View {
             VStack {
                 TextField("Barnets namn", text: $childName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                     .padding()
                 
                 Button("Lägg till barn") {

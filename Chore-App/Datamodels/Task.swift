@@ -3,10 +3,11 @@ import Foundation
 struct Task: Identifiable, Codable {
     var id: String
     var name: String
-    var time: String
-    var duration: Int?
-    var date: String?
-    var days: [String]
+    var startTime: Date?
+    var endTime: Date?
+    var isAllDay: Bool
+    var startDate: Date?
+    var date: Date?
     var type: String
     var repeatOption: String
     var completed: Int

@@ -14,6 +14,7 @@ struct PasswordSheetView: View {
 
             SecureField("Lösenord", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
                 .keyboardType(.default)
 

@@ -22,15 +22,18 @@ struct RegisterView: View {
         VStack {
             TextField("Namn", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
             
             TextField("E-post", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
             
             SecureField("Lösenord", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
             
             if let errorMessage = errorMessage {

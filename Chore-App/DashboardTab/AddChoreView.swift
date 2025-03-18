@@ -23,6 +23,7 @@ struct AddChoreView: View {
                     TextField("Namn på sysslan", text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
                 
                 Section(header: Text("Belöning")) {
