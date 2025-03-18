@@ -56,9 +56,12 @@ class AuthService: ObservableObject {
     
     func fetchCurrentUser() {
         guard let currentUser = auth.currentUser else {
+            print("Ingen användare inloggad")
             self.user = nil
             return
         }
+        
+        print ("Hittade inloggad användare: \(currentUser.email ?? "Okänd")")
         
         let userRef = db.collection("users").document(currentUser.uid)
         userRef.getDocument { snapshot, error in
@@ -76,6 +79,7 @@ class AuthService: ObservableObject {
                         balance: data["balance"] as? Int ?? 0,
                         rewardType: data["rewardType"] as? String ?? "money"
                     )
+                    print("Användare uppdaterad i appen: \(self.user?.name ?? "Okänd")")
                 }
             }
         }

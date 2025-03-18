@@ -14,11 +14,13 @@ struct EditChoreView: View {
 
             TextField("Namn", text: $chore.name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
 
             TextField("Värde", value: $chore.value, formatter: NumberFormatter())
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.numberPad)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
 
             Button("Spara") {

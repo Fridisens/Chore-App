@@ -13,10 +13,12 @@ struct LoginView: View {
             TextField("E-post", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
             
             SecureField("Lösenord", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
             
             if let errorMessage = errorMessage {
