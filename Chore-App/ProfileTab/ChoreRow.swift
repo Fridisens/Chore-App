@@ -12,7 +12,7 @@ struct ChoreRow: View {
     var onBalanceUpdate: () -> Void
     
     @State private var showConfetti = 0
-
+    
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
@@ -20,7 +20,7 @@ struct ChoreRow: View {
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .primary)
                     .padding(.bottom, 2)
                 
-                Text("\(chore.value) SEK")
+                Text("\(chore.value) \(chore.rewardType == "money" ? "KRONOR" : "MIN SKÄRMTID")")
                     .font(.subheadline)
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .gray)
             }
@@ -52,39 +52,65 @@ struct ChoreRow: View {
             .tint(.blue)
         }
     }
-
+    
     private func toggleChoreCompletion() {
         guard let parentId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(selectedChild.id)
         let choreRef = childRef.collection("chores").document(chore.id)
-
+        
+        let valueToUpdate = chore.rewardType == "money" ? chore.value : chore.value
+        
         if completedChores.contains(chore.id) {
+            // ❌ Avmarkera syssla: Ta bort från listan och minska saldo
             completedChores.removeAll { $0 == chore.id }
             choreRef.updateData(["completed": 0])
             
-            childRef.updateData(["balance": FieldValue.increment(-Int64(chore.value))]) { error in
-                if let error = error {
-                    print("❌ Fel vid minskning av saldo: \(error.localizedDescription)")
-                } else {
-                    print("💰 Saldot minskat med \(chore.value) kr")
-                    onBalanceUpdate() // 🔄 Be ProfilePageView att uppdatera saldot
+            // 🔥 Minska rätt typ av belöning i Firestore
+            if chore.rewardType == "money" {
+                childRef.updateData(["balance": FieldValue.increment(-Int64(valueToUpdate))]) { error in
+                    if let error = error {
+                        print("❌ Fel vid minskning av saldo: \(error.localizedDescription)")
+                    } else {
+                        print("💰 Saldot minskat med \(valueToUpdate) kr")
+                        onBalanceUpdate() // 🔄 Uppdatera UI
+                    }
+                }
+            } else if chore.rewardType == "screenTime" {
+                childRef.updateData(["screenTime": FieldValue.increment(-Int64(valueToUpdate))]) { error in
+                    if let error = error {
+                        print("❌ Fel vid minskning av skärmtid: \(error.localizedDescription)")
+                    } else {
+                        print("🕒 Skärmtid minskad med \(valueToUpdate) min")
+                        onBalanceUpdate()
+                    }
                 }
             }
         } else {
+            // ✅ Markera syssla som klar och öka saldo
             completedChores.append(chore.id)
             choreRef.updateData(["completed": 1])
             
-            childRef.updateData(["balance": FieldValue.increment(Int64(chore.value))]) { error in
-                if let error = error {
-                    print("❌ Fel vid ökning av saldo: \(error.localizedDescription)")
-                } else {
-                    print("💰 Saldot ökat med \(chore.value) kr")
-                    onBalanceUpdate() // 🔄 Be ProfilePageView att uppdatera saldot
+            // 🔥 Öka rätt typ av belöning i Firestore
+            if chore.rewardType == "money" {
+                childRef.updateData(["balance": FieldValue.increment(Int64(valueToUpdate))]) { error in
+                    if let error = error {
+                        print("❌ Fel vid ökning av saldo: \(error.localizedDescription)")
+                    } else {
+                        print("💰 Saldot ökat med \(valueToUpdate) kr")
+                        onBalanceUpdate()
+                    }
+                }
+            } else if chore.rewardType == "screenTime" {
+                childRef.updateData(["screenTime": FieldValue.increment(Int64(valueToUpdate))]) { error in
+                    if let error = error {
+                        print("❌ Fel vid ökning av skärmtid: \(error.localizedDescription)")
+                    } else {
+                        print("🕒 Skärmtid ökat med \(valueToUpdate) min")
+                        onBalanceUpdate()
+                    }
                 }
             }
-            
-            showConfetti += 1
         }
     }
 }
