@@ -62,51 +62,47 @@ struct ChoreRow: View {
         let valueToUpdate = chore.rewardType == "money" ? chore.value : chore.value
         
         if completedChores.contains(chore.id) {
-            // ❌ Avmarkera syssla: Ta bort från listan och minska saldo
             completedChores.removeAll { $0 == chore.id }
             choreRef.updateData(["completed": 0])
             
-            // 🔥 Minska rätt typ av belöning i Firestore
             if chore.rewardType == "money" {
                 childRef.updateData(["balance": FieldValue.increment(-Int64(valueToUpdate))]) { error in
                     if let error = error {
-                        print("❌ Fel vid minskning av saldo: \(error.localizedDescription)")
+                        print("Fel vid minskning av saldo: \(error.localizedDescription)")
                     } else {
-                        print("💰 Saldot minskat med \(valueToUpdate) kr")
-                        onBalanceUpdate() // 🔄 Uppdatera UI
+                        print("Saldot minskat med \(valueToUpdate) kr")
+                        onBalanceUpdate()
                     }
                 }
             } else if chore.rewardType == "screenTime" {
                 childRef.updateData(["screenTime": FieldValue.increment(-Int64(valueToUpdate))]) { error in
                     if let error = error {
-                        print("❌ Fel vid minskning av skärmtid: \(error.localizedDescription)")
+                        print("Fel vid minskning av skärmtid: \(error.localizedDescription)")
                     } else {
-                        print("🕒 Skärmtid minskad med \(valueToUpdate) min")
+                        print("Skärmtid minskad med \(valueToUpdate) min")
                         onBalanceUpdate()
                     }
                 }
             }
         } else {
-            // ✅ Markera syssla som klar och öka saldo
             completedChores.append(chore.id)
             choreRef.updateData(["completed": 1])
             
-            // 🔥 Öka rätt typ av belöning i Firestore
             if chore.rewardType == "money" {
                 childRef.updateData(["balance": FieldValue.increment(Int64(valueToUpdate))]) { error in
                     if let error = error {
-                        print("❌ Fel vid ökning av saldo: \(error.localizedDescription)")
+                        print("Fel vid ökning av saldo: \(error.localizedDescription)")
                     } else {
-                        print("💰 Saldot ökat med \(valueToUpdate) kr")
+                        print("Saldot ökat med \(valueToUpdate) kr")
                         onBalanceUpdate()
                     }
                 }
             } else if chore.rewardType == "screenTime" {
                 childRef.updateData(["screenTime": FieldValue.increment(Int64(valueToUpdate))]) { error in
                     if let error = error {
-                        print("❌ Fel vid ökning av skärmtid: \(error.localizedDescription)")
+                        print("Fel vid ökning av skärmtid: \(error.localizedDescription)")
                     } else {
-                        print("🕒 Skärmtid ökat med \(valueToUpdate) min")
+                        print("Skärmtid ökat med \(valueToUpdate) min")
                         onBalanceUpdate()
                     }
                 }

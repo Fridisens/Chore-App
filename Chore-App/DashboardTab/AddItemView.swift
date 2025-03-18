@@ -1,18 +1,16 @@
 import SwiftUI
 
-
-
 struct AddItemView: View {
     var selectedChild: Child
-    @Environment(\.presentationMode) var presentationMode // 🔹 För att stänga modalen
+    @Environment(\.presentationMode) var presentationMode
     @State private var selectedTab = "Chore"
-
+    
     var body: some View {
         VStack {
             HStack {
                 Spacer()
                 Button(action: {
-                    presentationMode.wrappedValue.dismiss() // 🔹 Stäng modalen
+                    presentationMode.wrappedValue.dismiss()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title)
@@ -20,11 +18,11 @@ struct AddItemView: View {
                         .padding()
                 }
             }
-
+            
             Text("Vad vill du lägga till?")
                 .font(.headline)
                 .padding(.top)
-
+            
             Picker(selection: $selectedTab, label: Text("Välj typ")) {
                 Text("Syssla").tag("Chore")
                 Text("Uppgift").tag("Task")
@@ -34,7 +32,7 @@ struct AddItemView: View {
             .background(Color.gray.opacity(0.2))
             .cornerRadius(10)
             .padding(.horizontal)
-
+            
             if selectedTab == "Chore" {
                 AddChoreView(selectedChild: selectedChild)
             } else {

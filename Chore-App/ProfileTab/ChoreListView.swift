@@ -13,12 +13,12 @@ struct ChoreListView: View {
     private var today: String {
         getToday()
     }
-
+    
     var body: some View {
         List {
             Section(header: Text("Dagens sysslor")) {
                 let todayChores = chores.filter { $0.days.contains(today) }
-
+                
                 ForEach(todayChores) { chore in
                     ChoreRow(
                         chore: chore,
@@ -42,8 +42,8 @@ struct ChoreListView: View {
         formatter.dateFormat = "E"
         return formatter.string(from: Date()).capitalized
     }
-
-
+    
+    
     private func debugLog() {
         print("Mottagna sysslor i ChoreListView:", chores.map { "\($0.name) - Dagar: \($0.days)" })
         print("Dagens dag: \(today)")

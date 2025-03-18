@@ -9,11 +9,11 @@ struct DashboardView: View {
     @State private var moneyEarned: Int = 0
     @State private var screenTimeEarned: Int = 0
     @State private var isShowingAddItemView = false
-    @State private var weeklyGoal: Int = 50 // Standardvärde tills Firestore laddar
+    @State private var weeklyGoal: Int = 50
     
     var body: some View {
         VStack {
-            // 🔹 Välj barn
+            
             ChildPickerView(selectedChild: $selectedChild, children: children) {
                 isShowingAddItemView = true
             }
@@ -25,7 +25,7 @@ struct DashboardView: View {
                         .font(.largeTitle)
                         .padding(.bottom, 10)
                     
-                    // 🔹 Progress-ringar med tydliga mål
+                    
                     HStack(spacing: 40) {
                         VStack {
                             ProgressRing(progress: CGFloat(moneyEarned) / CGFloat(weeklyGoal))
@@ -40,7 +40,7 @@ struct DashboardView: View {
                             Text("Intjänade pengar")
                                 .font(.headline)
                         }
-
+                        
                         VStack {
                             ProgressRing(progress: CGFloat(screenTimeEarned) / CGFloat(weeklyGoal))
                                 .frame(width: 120, height: 120)
@@ -57,7 +57,6 @@ struct DashboardView: View {
                     }
                     .padding()
                     
-                    // 🔹 Ändra veckans mål direkt i DashboardView
                     HStack {
                         Text("Veckans mål:")
                             .font(.headline)
@@ -76,8 +75,7 @@ struct DashboardView: View {
                         .cornerRadius(10)
                     }
                     .padding()
-
-                    // 🔹 Knapp för att lägga till syssla eller uppgift
+                    
                     Button(action: {
                         isShowingAddItemView = true
                     }) {
@@ -149,7 +147,7 @@ struct DashboardView: View {
                       let avatar = data["avatar"] as? String,
                       let balance = data["balance"] as? Int,
                       let weeklyGoal = data["weeklyGoal"] as? Int else {
-                    print("⚠️ Saknade fält i dokumentet: \(data)")
+                    print("Saknade fält i dokumentet: \(data)")
                     return nil
                 }
                 
@@ -164,28 +162,26 @@ struct DashboardView: View {
     }
     
     private func updateChildProgress() {
-            guard let parentId = authService.user?.id, let child = selectedChild else { return }
-            let db = Firestore.firestore()
-            
-            db.collection("users").document(parentId).collection("children").document(child.id).collection("chores")
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Fel vid hämtning av sysslor: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    let allChores = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
-                    let moneyTotal = allChores.filter { $0.rewardType == "money" && $0.completed > 0 }.reduce(0) { $0 + $1.value }
-                    let screenTimeTotal = allChores.filter { $0.rewardType == "screenTime" && $0.completed > 0 }.reduce(0) { $0 + $1.value }
-                    
-                    DispatchQueue.main.async {
-                        self.moneyEarned = moneyTotal
-                        self.screenTimeEarned = screenTimeTotal
-                    }
+        guard let parentId = authService.user?.id, let child = selectedChild else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(parentId).collection("children").document(child.id).collection("chores")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Fel vid hämtning av sysslor: \(error.localizedDescription)")
+                    return
                 }
-        }
-    
-    
+                
+                let allChores = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
+                let moneyTotal = allChores.filter { $0.rewardType == "money" && $0.completed > 0 }.reduce(0) { $0 + $1.value }
+                let screenTimeTotal = allChores.filter { $0.rewardType == "screenTime" && $0.completed > 0 }.reduce(0) { $0 + $1.value }
+                
+                DispatchQueue.main.async {
+                    self.moneyEarned = moneyTotal
+                    self.screenTimeEarned = screenTimeTotal
+                }
+            }
+    }
     
     private func updateChildBalance() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
@@ -205,7 +201,6 @@ struct DashboardView: View {
         }
     }
     
-    
     private func saveWeeklyGoal() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
         
@@ -214,9 +209,9 @@ struct DashboardView: View {
         
         childRef.updateData(["weeklyGoal": weeklyGoal]) { error in
             if let error = error {
-                print("❌ Fel vid uppdatering av veckomål: \(error.localizedDescription)")
+                print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
             } else {
-                print("✅ Veckomål uppdaterat till \(weeklyGoal) SEK")
+                print("Veckomål uppdaterat till \(weeklyGoal) SEK")
             }
         }
     }

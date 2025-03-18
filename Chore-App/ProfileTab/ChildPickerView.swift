@@ -1,13 +1,10 @@
 import SwiftUI
 
-
-import SwiftUI
-
 struct ChildPickerView: View {
     @Binding var selectedChild: Child?
     var children: [Child]
     var onAddChild: () -> Void
-
+    
     var body: some View {
         HStack {
             if !children.isEmpty {
@@ -20,7 +17,7 @@ struct ChildPickerView: View {
                                     .scaledToFit()
                                     .frame(width: 25, height: 25)
                                     .clipShape(Circle())
-
+                                
                                 Text(child.name)
                                     .font(.system(size: 14))
                             }
@@ -34,7 +31,7 @@ struct ChildPickerView: View {
                                 .scaledToFit()
                                 .frame(width: 30, height: 30)
                                 .clipShape(Circle())
-
+                            
                             Text(selectedChild.name)
                                 .font(.system(size: 14))
                                 .foregroundColor(.primary)
@@ -43,7 +40,7 @@ struct ChildPickerView: View {
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                         }
-
+                        
                         Image(systemName: "chevron.down")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
@@ -61,9 +58,9 @@ struct ChildPickerView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal, 8)
             }
-
+            
             Spacer() // adding space between dropdown and button
-
+            
             Button(action: onAddChild) {
                 Image(systemName: "person.fill.badge.plus")
                     .font(.system(size: 20))
