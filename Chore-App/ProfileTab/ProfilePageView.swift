@@ -17,7 +17,7 @@ struct ProfilePageView: View {
     @State private var selectedAvatar: String = "avatar1"
     @State private var showConfetti = 0
     @State private var weeklyGoal: String = ""
-
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -37,7 +37,6 @@ struct ProfilePageView: View {
                     }
                     .padding()
                 } else {
-                    // 🔹 Barnväljare
                     HStack {
                         ChildPickerView(selectedChild: $selectedChild, children: children) {
                             isAddingChild = true
@@ -57,7 +56,7 @@ struct ProfilePageView: View {
                                 .font(.title)
                             
                             
-                            .padding()
+                                .padding()
                         }
                         
                         AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
@@ -98,7 +97,7 @@ struct ProfilePageView: View {
             }
         }
     }
-
+    
     
     private func addMissingWeeklyGoal() {
         guard let parentId = authService.user?.id else { return }
@@ -125,41 +124,41 @@ struct ProfilePageView: View {
             }
         }
     }
-
-
-  
+    
+    
+    
     private func saveWeeklyGoal() {
-            guard let parentId = authService.user?.id, let child = selectedChild else { return }
-            guard let goal = Int(weeklyGoal) else { return }
-            
-            let db = Firestore.firestore()
-            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-            
-            childRef.updateData(["weeklyGoal": goal]) { error in
-                if let error = error {
-                    print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
-                } else {
-                    DispatchQueue.main.async {
-                        self.selectedChild?.weeklyGoal = goal
-                    }
+        guard let parentId = authService.user?.id, let child = selectedChild else { return }
+        guard let goal = Int(weeklyGoal) else { return }
+        
+        let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+        
+        childRef.updateData(["weeklyGoal": goal]) { error in
+            if let error = error {
+                print("Fel vid uppdatering av veckomål: \(error.localizedDescription)")
+            } else {
+                DispatchQueue.main.async {
+                    self.selectedChild?.weeklyGoal = goal
                 }
             }
         }
+    }
     
     
     
     
     
     private func listenToChores(for child: Child) {
-           guard let parentId = authService.user?.id else { return }
-           
-           firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
-               DispatchQueue.main.async {
-                   self.chores = fetchedChores
-                   print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
-               }
-           }
-       }
+        guard let parentId = authService.user?.id else { return }
+        
+        firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
+            DispatchQueue.main.async {
+                self.chores = fetchedChores
+                print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
+            }
+        }
+    }
     
     
     
@@ -181,10 +180,10 @@ struct ProfilePageView: View {
     
     private func updateChore(_ chore: Chore) {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-
+        
         let db = Firestore.firestore()
         let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
-
+        
         choreRef.setData([
             "name": chore.name,
             "value": chore.value,
@@ -249,7 +248,7 @@ struct ProfilePageView: View {
         guard let parentId = Auth.auth().currentUser?.uid, let child = selectedChild else { return }
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-
+        
         childRef.getDocument { snapshot, error in
             if let error = error {
                 print("Fel vid hämtning av saldo: \(error.localizedDescription)")
@@ -273,38 +272,35 @@ struct ProfilePageView: View {
             }
         }
     }
-
-
-
     
     private func loadChildren() {
-            guard let parentId = authService.user?.id else { return }
-            let db = Firestore.firestore()
+        guard let parentId = authService.user?.id else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
+            if let error = error {
+                print("Fel vid hämtning av barn: \(error.localizedDescription)")
+                return
+            }
             
-            db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
-                if let error = error {
-                    print("Fel vid hämtning av barn: \(error.localizedDescription)")
-                    return
-                }
+            self.children = snapshot?.documents.compactMap { doc in
+                try? doc.data(as: Child.self)
+            } ?? []
+            
+            DispatchQueue.main.async {
+                print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
                 
-                self.children = snapshot?.documents.compactMap { doc in
-                    try? doc.data(as: Child.self)
-                } ?? []
-                
-                DispatchQueue.main.async {
-                    print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
-                    
-                    if self.children.isEmpty {
-                        self.selectedChild = nil
-                    } else if self.selectedChild == nil {
-                        self.selectedChild = self.children.first
-                        if let firstChild = self.selectedChild {
-                            listenToChores(for: firstChild)
-                        }
+                if self.children.isEmpty {
+                    self.selectedChild = nil
+                } else if self.selectedChild == nil {
+                    self.selectedChild = self.children.first
+                    if let firstChild = self.selectedChild {
+                        listenToChores(for: firstChild)
                     }
                 }
             }
         }
+    }
     
     private func saveAvatarToFirebase() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }

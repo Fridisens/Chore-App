@@ -43,7 +43,7 @@ struct AddChildView: View {
             name: childName,
             avatar: "avatar1",
             balance: 0,
-            weeklyGoal: 50 // 🔹 Standardmål för nya barn
+            weeklyGoal: 50
         )
         
         do {

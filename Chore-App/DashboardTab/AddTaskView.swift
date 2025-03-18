@@ -9,9 +9,9 @@ struct AddTaskView: View {
     @State private var selectedEndTime = Date()
     @State private var selectedDays: [String] = []
     @State private var isAllDay = false
-    @State private var taskType = "recurring" // "oneTime" eller "recurring"
+    @State private var taskType = "recurring"
     @State private var selectedDate = Date()
-    @State private var repeatOption = "Aldrig" // Upprepning: Aldrig, Dagligen, Varje vecka, Varje månad, Varje år
+    @State private var repeatOption = "Aldrig"
     
     @StateObject private var firestoreService = FirestoreService()
     @Environment(\.presentationMode) var presentationMode
@@ -20,7 +20,7 @@ struct AddTaskView: View {
     var selectedChild: Child
     let weekdays = ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"]
     let repeatOptions = ["Aldrig", "Dagligen", "Varje vecka", "Varje månad", "Varje år"]
-
+    
     var body: some View {
         NavigationView {
             Form {
@@ -34,7 +34,7 @@ struct AddTaskView: View {
                         Text("Engångsuppgift").tag("oneTime")
                     }
                     .pickerStyle(SegmentedPickerStyle())
-
+                    
                     Toggle("Heldag", isOn: $isAllDay)
                     
                     if taskType == "oneTime" {
@@ -46,7 +46,7 @@ struct AddTaskView: View {
                         DatePicker("Sluttid", selection: $selectedEndTime, displayedComponents: .hourAndMinute)
                     }
                 }
-
+                
                 if taskType == "recurring" {
                     Section(header: Text("Välj dagar")) {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
@@ -82,7 +82,7 @@ struct AddTaskView: View {
                         .pickerStyle(MenuPickerStyle())
                     }
                 }
-
+                
                 Section {
                     Button(action: saveTask) {
                         Text("Spara Uppgift")
@@ -102,13 +102,13 @@ struct AddTaskView: View {
     
     private func saveTask() {
         guard let userId = authService.user?.id else { return }
-
+        
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         let formattedTime = formatter.string(from: selectedTime)
         let formattedEndTime = formatter.string(from: selectedEndTime)
         let formattedDate = DateFormatter.localizedString(from: selectedDate, dateStyle: .short, timeStyle: .none)
-
+        
         let newTask = Task(
             id: UUID().uuidString,
             name: name,
@@ -121,7 +121,7 @@ struct AddTaskView: View {
             completed: 0,
             assignedBy: userId
         )
-
+        
         firestoreService.addTask(for: userId, childId: selectedChild.id, task: newTask) { result in
             switch result {
             case .success():

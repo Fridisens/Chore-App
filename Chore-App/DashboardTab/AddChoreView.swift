@@ -1,5 +1,3 @@
-// forms for adding chores and tasks that you then can find at profile page
-
 import SwiftUI
 import Firebase
 import FirebaseAuth
@@ -52,71 +50,70 @@ struct AddChoreView: View {
                         ForEach(weekdays, id: \.self) { day in
                             Button(action: {
                                 if selectedDays.contains(day) {
-                                    selectedDays.removeAll { $0 == day }  // Ta bort vald dag
+                                    selectedDays.removeAll { $0 == day }
                                 } else {
-                                    selectedDays.append(day)  // Lägg till vald dag
+                                    selectedDays.append(day)
                                 }
                             }) {
-                                Text(String(day.prefix(1)))  // Visa endast första bokstaven
+                                Text(String(day.prefix(1)))
                                     .font(.headline)
-                                    .frame(width: 40, height: 40)  // Storlek på varje knapp
+                                    .frame(width: 40, height: 40)
                                     .background(
                                         selectedDays.contains(day) ? Color.purple : Color.gray.opacity(0.3)
                                     )
                                     .foregroundColor(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10)) // Runda hörn på varje knapp
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.white.opacity(selectedDays.contains(day) ? 0 : 1), lineWidth: 1) // Synlig kant för icke valda
+                                            .stroke(Color.white.opacity(selectedDays.contains(day) ? 0 : 1), lineWidth: 1)
                                     )
                             }
-                            .buttonStyle(.plain) // Tar bort SwiftUIs standardknapp-styling
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 5)
                 }
-                    
-                    Section {
-                        Button(action: saveChore) {
-                            Text("Spara Syssla")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(name.isEmpty ? Color.gray.opacity(0.5) : Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        .disabled(name.isEmpty)
+                
+                Section {
+                    Button(action: saveChore) {
+                        Text("Spara Syssla")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(name.isEmpty ? Color.gray.opacity(0.5) : Color.purple)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
-                }
-                .navigationTitle("Lägg till Syssla")
-            }
-        }
-    
-        
-        private func saveChore() {
-            guard let userId = authService.user?.id else { return }
-            
-            let newChore = Chore(
-                id: UUID().uuidString,
-                name: name,
-                value: value,
-                completed: 0,
-                assignedBy: userId,
-                rewardType: selectedRewardType,
-                days: selectedDays
-            )
-            
-            firestoreService.addChore(for: userId, childId: selectedChild.id, chore: newChore) { result in
-                switch result {
-                case .success():
-                    print("Syssla tillagd!")
-                    presentationMode.wrappedValue.dismiss()
-                case .failure(let error):
-                    print("Fel vid tillägg av syssla: \(error.localizedDescription)")
+                    .disabled(name.isEmpty)
                 }
             }
+            .navigationTitle("Lägg till Syssla")
         }
     }
     
+    private func saveChore() {
+        guard let userId = authService.user?.id else { return }
+        
+        let newChore = Chore(
+            id: UUID().uuidString,
+            name: name,
+            value: value,
+            completed: 0,
+            assignedBy: userId,
+            rewardType: selectedRewardType,
+            days: selectedDays
+        )
+        
+        firestoreService.addChore(for: userId, childId: selectedChild.id, chore: newChore) { result in
+            switch result {
+            case .success():
+                print("Syssla tillagd!")
+                presentationMode.wrappedValue.dismiss()
+            case .failure(let error):
+                print("Fel vid tillägg av syssla: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
 
