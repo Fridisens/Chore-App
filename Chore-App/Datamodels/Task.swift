@@ -5,8 +5,9 @@ struct Task: Identifiable, Codable {
     var name: String
     var startTime: Date?
     var endTime: Date?
-    var isAllDay: Bool
     var startDate: Date?
+    var endDate: Date?
+    var isAllDay: Bool
     var date: Date?
     var type: String
     var repeatOption: String
