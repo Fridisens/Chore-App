@@ -11,7 +11,7 @@ class FirestoreService: ObservableObject {
         let taskRef = db.collection("users").document(userId).collection("children").document(childId).collection("tasks").document()
         var newTask = task
         newTask.id = taskRef.documentID
-        
+
         do {
             try taskRef.setData(from: newTask) { error in
                 if let error = error {
@@ -24,6 +24,7 @@ class FirestoreService: ObservableObject {
             completion(.failure(error))
         }
     }
+
     
     func addChore(for userId: String, childId: String, chore: Chore, completion: @escaping (Result<Void, Error>) -> Void) {
         let choreRef = db.collection("users").document(userId).collection("children").document(childId).collection("chores").document()
