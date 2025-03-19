@@ -10,13 +10,13 @@ struct DashboardView: View {
     @State private var screenTimeEarned: Int = 0
     @State private var isShowingAddItemView = false
     @State private var weeklyMoneyGoal: Int = 50
-    @State private var weeklyScreenTimeGoal: Int = 60
+    @State private var weeklyScreenTimeGoal: Int = 30
     @State private var isEditingMoneyGoal = false
     @State private var isEditingScreenTimeGoal = false
     
     var body: some View {
         VStack {
-        
+            
             ChildPickerView(selectedChild: $selectedChild, children: children) {
                 isShowingAddItemView = true
             }
@@ -28,7 +28,7 @@ struct DashboardView: View {
                         .font(.largeTitle)
                         .padding(.bottom, 10)
                     
-               
+                    
                     HStack(spacing: 40) {
                         VStack {
                             ZStack {
@@ -54,7 +54,7 @@ struct DashboardView: View {
                             Text("Intjänade pengar")
                                 .font(.headline)
                         }
-
+                        
                         VStack {
                             ZStack {
                                 ProgressRing(progress: CGFloat(screenTimeEarned) / CGFloat(weeklyScreenTimeGoal))
@@ -81,8 +81,8 @@ struct DashboardView: View {
                         }
                     }
                     .padding()
-
-                
+                    
+                    
                     Button(action: {
                         isShowingAddItemView = true
                     }) {
@@ -169,35 +169,35 @@ struct DashboardView: View {
     }
     
     private func saveScreenTimeGoal() {
-            guard let parentId = authService.user?.id, let child = selectedChild else { return }
-            
-            let db = Firestore.firestore()
-            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-            
-            childRef.updateData(["weeklyScreenTimeGoal": weeklyScreenTimeGoal]) { error in
-                if let error = error {
-                    print("Fel vid uppdatering av veckomål för skärmtid: \(error.localizedDescription)")
-                } else {
-                    print("Veckans mål för skärmtid uppdaterat till \(weeklyScreenTimeGoal) min")
-                }
+        guard let parentId = authService.user?.id, let child = selectedChild else { return }
+        
+        let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+        
+        childRef.updateData(["weeklyScreenTimeGoal": weeklyScreenTimeGoal]) { error in
+            if let error = error {
+                print("Fel vid uppdatering av veckomål för skärmtid: \(error.localizedDescription)")
+            } else {
+                print("Veckans mål för skärmtid uppdaterat till \(weeklyScreenTimeGoal) min")
             }
         }
+    }
     
     
     private func saveMoneyGoal() {
-            guard let parentId = authService.user?.id, let child = selectedChild else { return }
-            
-            let db = Firestore.firestore()
-            let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-            
-            childRef.updateData(["weeklyMoneyGoal": weeklyMoneyGoal]) { error in
-                if let error = error {
-                    print("Fel vid uppdatering av veckomål för pengar: \(error.localizedDescription)")
-                } else {
-                    print( "Veckans mål för pengar uppdaterat till \(weeklyMoneyGoal) SEK")
-                }
+        guard let parentId = authService.user?.id, let child = selectedChild else { return }
+        
+        let db = Firestore.firestore()
+        let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
+        
+        childRef.updateData(["weeklyMoneyGoal": weeklyMoneyGoal]) { error in
+            if let error = error {
+                print("Fel vid uppdatering av veckomål för pengar: \(error.localizedDescription)")
+            } else {
+                print( "Veckans mål för pengar uppdaterat till \(weeklyMoneyGoal) SEK")
             }
         }
+    }
     
     private func updateChildProgress() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }

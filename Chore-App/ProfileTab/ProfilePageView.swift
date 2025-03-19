@@ -125,8 +125,6 @@ struct ProfilePageView: View {
         }
     }
     
-    
-    
     private func saveWeeklyGoal() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
         guard let goal = Int(weeklyGoal) else { return }
@@ -144,11 +142,7 @@ struct ProfilePageView: View {
             }
         }
     }
-    
-    
-    
-    
-    
+
     private func listenToChores(for child: Child) {
         guard let parentId = authService.user?.id else { return }
         
@@ -159,9 +153,7 @@ struct ProfilePageView: View {
             }
         }
     }
-    
-    
-    
+      
     private func loadChores() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
         let db = Firestore.firestore()
