@@ -5,5 +5,6 @@ struct Child: Identifiable, Codable, Hashable {
     var name: String
     var avatar: String
     var balance: Int
+    var savings: Int
     var weeklyGoal: Int
 }

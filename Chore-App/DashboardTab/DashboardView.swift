@@ -105,12 +105,40 @@ struct DashboardView: View {
         .onAppear {
             loadChildren()
             updateChildProgress()
+            addMissingSavingsField()
         }
         .onChange(of: selectedChild) { _, _ in
             updateChildBalance()
             updateChildProgress()
         }
     }
+    
+    private func addMissingSavingsField() {
+        guard let parentId = authService.user?.id else { return }
+        let db = Firestore.firestore()
+
+        db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
+            if let error = error {
+                print("Fel vid uppdatering av barn: \(error.localizedDescription)")
+                return
+            }
+
+            for document in snapshot?.documents ?? [] {
+                let childRef = db.collection("users").document(parentId).collection("children").document(document.documentID)
+
+                if document.data()["savings"] == nil {
+                    childRef.updateData(["savings": 0]) { error in
+                        if let error = error {
+                            print("Fel vid tillägg av savings: \(error.localizedDescription)")
+                        } else {
+                            print("Lagt till savings för \(document.documentID)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     
     private func addMissingWeeklyGoal() {
         guard let parentId = authService.user?.id else { return }
@@ -141,32 +169,34 @@ struct DashboardView: View {
     private func loadChildren() {
         guard let parentId = authService.user?.id else { return }
         let db = Firestore.firestore()
-        
+
         db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
             if let error = error {
                 print("Fel vid hämtning av barn: \(error.localizedDescription)")
                 return
             }
-            
+
             self.children = snapshot?.documents.compactMap { doc in
                 let data = doc.data()
                 guard let name = data["name"] as? String,
                       let avatar = data["avatar"] as? String,
                       let balance = data["balance"] as? Int,
+                      let savings = data["savings"] as? Int,
                       let weeklyGoal = data["weeklyGoal"] as? Int else {
                     print("Saknade fält i dokumentet: \(data)")
                     return nil
                 }
-                
-                return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, weeklyGoal: weeklyGoal)
+
+                return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, savings: savings, weeklyGoal: weeklyGoal) 
             } ?? []
-            
+
             if selectedChild == nil, !children.isEmpty {
                 selectedChild = children.first
                 weeklyMoneyGoal = selectedChild?.weeklyGoal ?? 50
             }
         }
     }
+
     
     private func saveScreenTimeGoal() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
