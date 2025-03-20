@@ -44,6 +44,7 @@ struct AddChildView: View {
             name: childName,
             avatar: "avatar1",
             balance: 0,
+            savings: 1000,
             weeklyGoal: 50
         )
         
