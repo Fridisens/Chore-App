@@ -40,12 +40,13 @@ struct AddTaskView: View {
                     
                     if !isAllDay {
                         DatePicker("Starttid", selection: $selectedStartTime, displayedComponents: .hourAndMinute)
-                            .onChange(of: selectedStartTime) { newStartTime in
+                            .onChange(of: selectedStartTime) {
                                 let calendar = Calendar.current
-                                if let newEndTime = calendar.date(byAdding: .hour, value: 1, to: newStartTime) {
+                                if let newEndTime = calendar.date(byAdding: .hour, value: 1, to: selectedStartTime) {
                                     selectedEndTime = newEndTime
                                 }
                             }
+                    
 
                         DatePicker("Sluttid", selection: $selectedEndTime, displayedComponents: .hourAndMinute)
 

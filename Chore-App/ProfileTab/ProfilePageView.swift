@@ -113,6 +113,21 @@ struct ProfilePageView: View {
                             .padding(.horizontal, 20)
                         }
                     }
+                    
+                    Button(action: {
+                        showLogoutAlert()
+                    }) {
+                        Text("Logga ut")
+                            .font(.headline)
+                            .foregroundColor(.red)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(radius: 2)
+                    }
+                    .padding(.bottom)
+
                 }
                 .padding(.top, 10)
                 .onAppear {
@@ -484,6 +499,21 @@ struct ProfilePageView: View {
             }
         }
     }
+    
+    private func showLogoutAlert() {
+        let alert = UIAlertController(title: "Logga ut", message: "Är du säker på att du vill logga ut?", preferredStyle: .alert)
+        
+        alert.addAction(UIAlertAction(title: "Avbryt", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "Logga ut", style: .destructive) { _ in
+            logout()
+        })
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(alert, animated: true, completion: nil)
+        }
+    }
+
     
     private func logout() {
         do {
