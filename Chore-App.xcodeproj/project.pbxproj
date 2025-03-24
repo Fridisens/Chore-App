@@ -19,6 +19,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		593038B72D916ECE003FC948 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		5943DBA02D634495008AB2F0 /* Chore-App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Chore-App";
@@ -45,6 +50,7 @@
 		5943DB952D634495008AB2F0 = {
 			isa = PBXGroup;
 			children = (
+				593038B72D916ECE003FC948 /* Resources */,
 				5943DBA02D634495008AB2F0 /* Chore-App */,
 				5943DBB22D63647D008AB2F0 /* Frameworks */,
 				5943DB9F2D634495008AB2F0 /* Products */,
@@ -82,6 +88,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				593038B72D916ECE003FC948 /* Resources */,
 				5943DBA02D634495008AB2F0 /* Chore-App */,
 			);
 			name = "Chore-App";
@@ -117,6 +124,7 @@
 			knownRegions = (
 				en,
 				Base,
+				sv,
 			);
 			mainGroup = 5943DB952D634495008AB2F0;
 			minimizedProjectReferenceProxies = 1;
