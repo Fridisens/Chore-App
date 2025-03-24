@@ -10,8 +10,9 @@ struct ChoreRow: View {
     var onEdit: (Chore) -> Void
     var onDelete: (Chore) -> Void
     var onBalanceUpdate: () -> Void
+    var onTriggerConfetti: () -> Void
     
-    @State private var showConfetti = 0
+ 
     
     var body: some View {
         HStack {
@@ -33,7 +34,8 @@ struct ChoreRow: View {
         .onTapGesture {
             toggleChoreCompletion()
         }
-        .confettiCannon(trigger: $showConfetti)
+        
+        
         .swipeActions {
             Button(role: .destructive) {
                 print("Trycker på radera för: \(chore.name)")
@@ -87,6 +89,8 @@ struct ChoreRow: View {
         } else {
             completedChores.append(chore.id)
             choreRef.updateData(["completed": 1])
+            
+            onTriggerConfetti()
             
             if chore.rewardType == "money" {
                 childRef.updateData(["balance": FieldValue.increment(Int64(valueToUpdate))]) { error in

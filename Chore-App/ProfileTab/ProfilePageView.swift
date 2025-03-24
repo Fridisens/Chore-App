@@ -6,7 +6,7 @@ import LocalAuthentication
 struct ProfilePageView: View {
     @EnvironmentObject var authService: AuthService
     @StateObject private var firestoreService = FirestoreService()
-    
+
     @State private var children: [Child] = []
     @State private var selectedChild: Child?
     @State private var selectedChore: Chore?
@@ -19,19 +19,17 @@ struct ProfilePageView: View {
     @State private var weeklyGoal: String = ""
     @State private var showAddMoneyDialog = false
     @State private var moneyToAdd = ""
-    
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    
                     if children.isEmpty {
                         VStack {
                             Text("Inga barn tillagda ännu!")
                                 .font(.title2)
                                 .padding()
-                            
+
                             Button(action: { isAddingChild = true }) {
                                 Label("Lägg till barn", systemImage: "person.fill.badge.plus")
                                     .padding()
@@ -48,32 +46,29 @@ struct ProfilePageView: View {
                             }
                             .padding()
                         }
-                        
+
                         if let child = selectedChild {
                             VStack(spacing: 20) {
-                                
-                                
                                 HStack(spacing: 15) {
                                     Image(child.avatar)
                                         .resizable()
                                         .frame(width: 80, height: 80)
                                         .clipShape(Circle())
                                         .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-                                    
+
                                     Text(child.name)
                                         .font(.title2)
                                         .bold()
-                                    
+
                                     Spacer()
-                                    
-                                    
+
                                     ZStack {
                                         ProgressRing(progress: CGFloat(child.savings) / 1000)
                                             .frame(width: 90, height: 90)
                                             .onLongPressGesture {
                                                 showAddMoneyAlert()
                                             }
-                                        
+
                                         VStack {
                                             Text("Spargris")
                                                 .font(.caption2)
@@ -83,37 +78,39 @@ struct ProfilePageView: View {
                                                 .foregroundColor(.purple)
                                         }
                                     }
-
                                 }
                                 .padding(.horizontal, 20)
-                        
+
                                 VStack(alignment: .leading, spacing: 10) {
                                     AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
                                 }
                                 .padding(.horizontal, 20)
-                                
-                         
+
                                 VStack(alignment: .leading, spacing: 10) {
                                     ChoreListView(
                                         chores: chores,
                                         completedChores: $completedChores,
                                         selectedChild: child,
                                         onEdit: { chore in
-                                            print("Tryckt på redigera för: \(chore.name)")
+                                            self.selectedChore = chore
+                                            self.isEditingChore = true
                                         },
                                         onDelete: deleteChore,
-                                        onBalanceUpdate: updateSelectedChildBalance
+                                        onBalanceUpdate: updateSelectedChildBalance,
+                                        onTriggerConfetti: {
+                                            showConfetti += 1
+                                        }
                                     )
                                     .confettiCannon(trigger: $showConfetti)
                                     .frame(minHeight: 200)
                                 }
-                                
+
                                 Spacer()
                             }
                             .padding(.horizontal, 20)
                         }
                     }
-                    
+
                     Button(action: {
                         showLogoutAlert()
                     }) {
@@ -127,18 +124,15 @@ struct ProfilePageView: View {
                             .shadow(radius: 2)
                     }
                     .padding(.bottom)
-
                 }
                 .padding(.top, 10)
                 .onAppear {
                     loadChildren()
                     loadAvatarFromFirebase()
                     addMissingWeeklyGoal()
-                    addMissingSavingsField()
                 }
                 .onChange(of: selectedChild) { _, newChild in
                     if let child = newChild {
-                        print("Barn bytt till: \(child.name) (ID: \(child.id)), laddar sysslor...")
                         listenToChores(for: child)
                     }
                 }
@@ -148,38 +142,27 @@ struct ProfilePageView: View {
                         isAddingChild = false
                     }, isAddingChild: $isAddingChild)
                 }
-            }
-        }
-    }
-
-
-
-    
-    private func addMissingSavingsField() {
-        guard let parentId = authService.user?.id else { return }
-        let db = Firestore.firestore()
-
-        db.collection("users").document(parentId).collection("children").getDocuments { snapshot, error in
-            if let error = error {
-                print("Fel vid uppdatering av barn: \(error.localizedDescription)")
-                return
-            }
-
-            for document in snapshot?.documents ?? [] {
-                let childRef = db.collection("users").document(parentId).collection("children").document(document.documentID)
-
-                if document.data()["savings"] == nil {
-                    childRef.updateData(["savings": 0]) { error in
-                        if let error = error {
-                            print("Fel vid tillägg av savings: \(error.localizedDescription)")
-                        } else {
-                            print("Lagt till savings för \(document.documentID)")
-                        }
+                .sheet(isPresented: $isEditingChore) {
+                    if let choreToEdit = selectedChore {
+                        EditChoreView(
+                            chore: Binding(
+                                get: { choreToEdit },
+                                set: { newChore in
+                                    updateChore(newChore)
+                                }
+                            ),
+                            onSave: {
+                                if let choreToEdit = selectedChore {
+                                    updateChore(choreToEdit)
+                                }
+                            }
+                        )
                     }
                 }
             }
         }
     }
+
 
     private func showAddMoneyAlert() {
         let alert = UIAlertController(title: "Lägg till pengar", message: "Ange belopp att lägga till i spargrisen", preferredStyle: .alert)
@@ -290,28 +273,32 @@ struct ProfilePageView: View {
     }
     
     private func updateChore(_ chore: Chore) {
-        guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-        
-        let db = Firestore.firestore()
-        let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
-        
-        choreRef.setData([
-            "name": chore.name,
-            "value": chore.value,
-            "completed": chore.completed,
-            "assignedBy": chore.assignedBy,
-            "rewardType": chore.rewardType,
-            "days": chore.days
-        ], merge: true) { error in
-            if let error = error {
-                print("Error updating chore: \(error.localizedDescription)")
-            } else {
-                if let index = chores.firstIndex(where: { $0.id == chore.id }) {
-                    chores[index] = chore
+            guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
+
+            let db = Firestore.firestore()
+            let choreRef = db.collection("users").document(parentId).collection("children").document(childId).collection("chores").document(chore.id)
+
+            choreRef.setData([
+                "name": chore.name,
+                "value": chore.value,
+                "completed": chore.completed,
+                "assignedBy": chore.assignedBy,
+                "rewardType": chore.rewardType,
+                "days": chore.days
+            ], merge: true) { error in
+                if let error = error {
+                    print("Error updating chore: \(error.localizedDescription)")
+                } else {
+                    DispatchQueue.main.async {
+                        if let index = self.chores.firstIndex(where: { $0.id == chore.id }) {
+                            self.chores[index] = chore
+                        }
+                        self.isEditingChore = false
+                    }
                 }
             }
         }
-    }
+    
     
     private func deleteChore(_ chore: Chore) {
         let context = LAContext()
