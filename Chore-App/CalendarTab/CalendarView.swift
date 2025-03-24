@@ -9,6 +9,8 @@ struct CalendarView: View {
     @State private var weeklyItems: [(String, [Any])] = []
     @StateObject private var firestoreService = FirestoreService()
     @EnvironmentObject var authService: AuthService
+    
+    
     private let calendar = Calendar.current
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -86,19 +88,31 @@ struct CalendarView: View {
     
 
     private func choreRow(_ chore: Chore) -> some View {
-        HStack {
+        // 🔢 Räkna ut färgen först
+        let totalRequired = chore.frequency ?? 1
+        let completed = chore.completed
+
+        let statusColor: Color
+        if completed >= totalRequired {
+            statusColor = .green
+        } else if completed > 0 {
+            statusColor = .yellow
+        } else {
+            statusColor = .red
+        }
+
+        // 👇 View-del
+        return HStack {
             VStack(alignment: .leading) {
                 Text(chore.name)
                     .font(.headline)
-                if let frequency = chore.frequency, frequency > 1 {
-                    Text("\(chore.completed)/\(frequency) gånger utfört")
+                if totalRequired > 1 {
+                    Text("\(completed)/\(totalRequired) gånger utfört")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
             }
             Spacer()
-            let completionRatio = CGFloat(chore.completed) / CGFloat(chore.frequency ?? 1)
-            let statusColor: Color = completionRatio >= 1.0 ? .green : (completionRatio > 0 ? .yellow : .red)
 
             Circle()
                 .fill(statusColor)
@@ -110,8 +124,11 @@ struct CalendarView: View {
     private func fetchWeeklyItems() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
+        
         let startOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.start ?? selectedDate
         let endOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.end ?? selectedDate
+
+        print("Veckan: \(startOfWeek) → \(endOfWeek)")
 
         db.collection("users").document(userId).collection("children").getDocuments { snapshot, error in
             if let error = error {
@@ -120,40 +137,57 @@ struct CalendarView: View {
             }
 
             let children = snapshot?.documents.compactMap { $0.documentID } ?? []
+            print("Hittade \(children.count) barn: \(children)")
+
             var weekItems: [Any] = []
             let group = DispatchGroup()
 
             for childId in children {
-                group.enter()
                 let childRef = db.collection("users").document(userId).collection("children").document(childId)
 
+                group.enter()
                 childRef.collection("tasks").getDocuments { snapshot, error in
                     let fetchedTasks = snapshot?.documents.compactMap { try? $0.data(as: Task.self) } ?? []
-                    weekItems.append(contentsOf: fetchedTasks.filter { task in
-                        if let taskDate = task.startDate {
+
+                    print("Tasks för \(childId): \(fetchedTasks.count) st")
+                    for task in fetchedTasks {
+                        print("— \(task.name), start: \(String(describing: task.startDate)), end: \(String(describing: task.endDate))")
+                    }
+
+                    let filtered = fetchedTasks.filter { task in
+                        if task.type == "recurring",
+                           let startDate = task.startDate,
+                           let endDate = task.endDate {
+                            return startDate <= endOfWeek && endDate >= startOfWeek
+                        } else if task.type == "oneTime",
+                                  let taskDate = task.startDate {
                             return taskDate >= startOfWeek && taskDate <= endOfWeek
                         }
                         return false
-                    })
+                    }
+
+                    print("Matchande tasks: \(filtered.map { $0.name })")
+                    weekItems.append(contentsOf: filtered)
                     group.leave()
                 }
 
                 group.enter()
-
                 childRef.collection("chores").getDocuments { snapshot, error in
                     let fetchedChores = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
+                    print("Sysslor för \(childId): \(fetchedChores.map { $0.name })")
                     weekItems.append(contentsOf: fetchedChores)
                     group.leave()
                 }
             }
 
             group.notify(queue: .main) {
-                DispatchQueue.main.async {
-                    self.weeklyItems = self.groupItemsByWeekday(weekItems)
-                }
+
+                self.weeklyItems = self.groupItemsByWeekday(weekItems)
+                print("Totalt antal items i vecka: \(self.weeklyItems.flatMap { $0.1 }.count)")
             }
         }
     }
+
 
     private func fetchTasksForSelectedDate() {
         guard let userId = authService.user?.id else { return }
@@ -207,13 +241,39 @@ struct CalendarView: View {
     }
 
     private func groupItemsByWeekday(_ items: [Any]) -> [(String, [Any])] {
-        let grouped = Dictionary(grouping: items) { item -> String in
+        var groupedItems: [String: [Any]] = [:]
+        let weekdays = ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"]
+
+        let shortFormatter = DateFormatter()
+        shortFormatter.locale = Locale(identifier: "sv_SE")
+        shortFormatter.dateFormat = "E"
+        for item in items {
             if let task = item as? Task, let date = task.startDate {
-                return dateFormatter.string(from: date)
+                let weekday = shortFormatter.string(from: date).capitalized
+                groupedItems[weekday, default: []].append(task)
+            } else if let chore = item as? Chore {
+                for day in chore.days {
+                    let capitalizedDay = day.capitalized
+                    if weekdays.contains(capitalizedDay) {
+                        groupedItems[capitalizedDay, default: []].append(chore)
+                    }
+                }
             }
-            return "Okänd dag"
         }
-        return grouped.sorted { $0.key < $1.key }
+
+        for (key, value) in groupedItems {
+            print("\(key): \(value.count) items")
+        }
+
+        return weekdays.compactMap { day in
+            if let items = groupedItems[day] {
+                let sorted = items.sorted {
+                    ($0 is Task ? 0 : 1) < ($1 is Task ? 0 : 1)
+                }
+                return (day, sorted)
+            }
+            return nil
+        }
     }
 
     private func formatTime(_ date: Date) -> String {

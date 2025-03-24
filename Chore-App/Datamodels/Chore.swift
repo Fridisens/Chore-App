@@ -9,6 +9,7 @@ struct Chore: Identifiable, Codable {
     var rewardType: String
     var days: [String]
     var frequency: Int?
+    var completedDates: [String: Bool]?
     
     init(id: String, name: String, completed: Int, assignedBy: String, rewardType: String, days: [String], frequency: Int? = nil) {
         self.id = id

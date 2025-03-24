@@ -415,7 +415,7 @@ struct ProfilePageView: View {
                       let avatar = data["avatar"] as? String,
                       let balance = data["balance"] as? Int,
                       let weeklyGoal = data["weeklyGoal"] as? Int else {
-                    print("⚠️ Saknade fält i dokumentet: \(data)")
+                    print("Saknade fält i dokumentet: \(data)")
                     return nil
                 }
 
@@ -425,7 +425,7 @@ struct ProfilePageView: View {
             } ?? []
 
             DispatchQueue.main.async {
-                print("✅ Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
+                print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
 
                 if self.children.isEmpty {
                     self.selectedChild = nil

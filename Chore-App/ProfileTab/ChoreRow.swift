@@ -88,6 +88,10 @@ struct ChoreRow: View {
             }
         } else {
             completedChores.append(chore.id)
+            let todayKey = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
+            choreRef.updateData([
+                "completedDates.\(todayKey)": true
+                ])
             choreRef.updateData(["completed": 1])
             
             onTriggerConfetti()
