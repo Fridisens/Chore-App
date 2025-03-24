@@ -86,14 +86,31 @@ struct AddTaskView: View {
     private func saveTask() {
         guard let userId = authService.user?.id else { return }
 
+        let calendar = Calendar.current
+
+        let combinedStartTime: Date? = isAllDay ? nil : calendar.date(
+            bySettingHour: calendar.component(.hour, from: selectedStartTime),
+            minute: calendar.component(.minute, from: selectedStartTime),
+            second: 0,
+            of: selectedStartDate
+        )
+
+        let combinedEndTime: Date? = isAllDay ? nil : calendar.date(
+            bySettingHour: calendar.component(.hour, from: selectedEndTime),
+            minute: calendar.component(.minute, from: selectedEndTime),
+            second: 0,
+            of: selectedStartDate
+        )
+
         let newTask = Task(
             id: UUID().uuidString,
             name: name,
-            startTime: isAllDay ? nil : selectedStartTime,
-            endTime: isAllDay ? nil : selectedEndTime,
+            startTime: combinedStartTime,
+            endTime: combinedEndTime,
             startDate: selectedStartDate,
             endDate: taskType == "recurring" ? selectedEndDate : nil,
             isAllDay: isAllDay,
+            date: nil,
             type: taskType,
             repeatOption: taskType == "recurring" ? selectedRepeatOption : "Aldrig",
             completed: 0,
@@ -110,4 +127,5 @@ struct AddTaskView: View {
             }
         }
     }
+
 }
