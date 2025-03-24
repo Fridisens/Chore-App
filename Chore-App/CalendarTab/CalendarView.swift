@@ -5,9 +5,17 @@ import FirebaseAuth
 struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var tasks: [Task] = []
-    @State private var taskDates: Set<Date> = []
+    @State private var chores: [Chore] = []
+    @State private var weeklyItems: [(String, [Any])] = []
     @StateObject private var firestoreService = FirestoreService()
     @EnvironmentObject var authService: AuthService
+    private let calendar = Calendar.current
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        formatter.locale = Locale(identifier: "sv_SE")
+        return formatter
+    }()
 
     var body: some View {
         VStack {
@@ -22,140 +30,136 @@ struct CalendarView: View {
                 .padding()
                 .onChange(of: selectedDate) {
                     fetchTasksForSelectedDate()
+                    fetchWeeklyItems()
                 }
-                .overlay(alignment: .bottom) {
-                    if taskDates.contains(selectedDate) {
-                        Circle()
-                            .fill(Color.purple)
-                            .frame(width: 6, height: 6)
-                            .offset(y: 20)
-                    }
-                }
-
-            if tasks.isEmpty {
-                Text("Inga uppgifter för denna dag")
+       
+            if weeklyItems.isEmpty {
+                Text("Inga sysslor eller uppgifter denna vecka")
                     .foregroundColor(.gray)
                     .padding()
             } else {
-                List(tasks) { task in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(task.name)
-                                .font(.headline)
+                VStack(alignment: .leading) {
+                    Text("Veckans Översikt")
+                        .font(.headline)
+                        .foregroundColor(.purple)
+                        .padding(.top, 5)
 
-                            if task.isAllDay {
-                                Text("Heldag")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            } else {
-                                if let startTime = task.startTime, let endTime = task.endTime {
-                                    Text("\(formatTime(startTime)) - \(formatTime(endTime))")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
+                    List {
+                        ForEach(weeklyItems, id: \.0) { weekday, items in
+                            Section(header: Text(weekday).font(.subheadline).foregroundColor(.purple)) {
+                                ForEach(items.indices, id: \.self) { index in
+                                    if let task = items[index] as? Task {
+                                        taskRow(task)
+                                    } else if let chore = items[index] as? Chore {
+                                        choreRow(chore)
+                                    }
                                 }
                             }
                         }
-                        Spacer()
-                        if task.completed > 0 {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        }
                     }
-                    .padding(5)
                 }
             }
         }
         .onAppear {
-            fetchAllTaskDates()
             fetchTasksForSelectedDate()
+            fetchWeeklyItems()
+            addMissingFrequencyField()
         }
     }
 
-    private func fetchAllTaskDates() {
+    private func taskRow(_ task: Task) -> some View {
+        VStack(alignment: .leading) {
+            Text(task.name)
+                .font(.headline)
+            if task.isAllDay {
+                Text("Heldag")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            } else if let startTime = task.startTime, let endTime = task.endTime {
+                Text("\(formatTime(startTime)) - \(formatTime(endTime))")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(5)
+    }
+    
+
+    private func choreRow(_ chore: Chore) -> some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(chore.name)
+                    .font(.headline)
+                if let frequency = chore.frequency, frequency > 1 {
+                    Text("\(chore.completed)/\(frequency) gånger utfört")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
+            Spacer()
+            let completionRatio = CGFloat(chore.completed) / CGFloat(chore.frequency ?? 1)
+            let statusColor: Color = completionRatio >= 1.0 ? .green : (completionRatio > 0 ? .yellow : .red)
+
+            Circle()
+                .fill(statusColor)
+                .frame(width: 16, height: 16)
+        }
+        .padding(5)
+    }
+
+    private func fetchWeeklyItems() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
+        let startOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.start ?? selectedDate
+        let endOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.end ?? selectedDate
 
-        db.collection("users").document(userId).collection("children").getDocuments { (snapshot, error) in
+        db.collection("users").document(userId).collection("children").getDocuments { snapshot, error in
             if let error = error {
                 print("Fel vid hämtning av barn: \(error.localizedDescription)")
                 return
             }
 
             let children = snapshot?.documents.compactMap { $0.documentID } ?? []
-            var allTaskDates: Set<Date> = []
+            var weekItems: [Any] = []
             let group = DispatchGroup()
 
             for childId in children {
                 group.enter()
-                db.collection("users").document(userId).collection("children").document(childId).collection("tasks").getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Fel vid hämtning av uppgifter: \(error.localizedDescription)")
-                        group.leave()
-                        return
-                    }
+                let childRef = db.collection("users").document(userId).collection("children").document(childId)
 
-                    let fetchedTasks = snapshot?.documents.compactMap { doc -> Date? in
-                        let task = try? doc.data(as: Task.self)
-                        return task?.startDate
-                    } ?? []
+                childRef.collection("tasks").getDocuments { snapshot, error in
+                    let fetchedTasks = snapshot?.documents.compactMap { try? $0.data(as: Task.self) } ?? []
+                    weekItems.append(contentsOf: fetchedTasks.filter { task in
+                        if let taskDate = task.startDate {
+                            return taskDate >= startOfWeek && taskDate <= endOfWeek
+                        }
+                        return false
+                    })
+                    group.leave()
+                }
 
-                    for task in fetchedTasks {
-                        allTaskDates.insert(task)
-                    }
+                group.enter()
 
+                childRef.collection("chores").getDocuments { snapshot, error in
+                    let fetchedChores = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
+                    weekItems.append(contentsOf: fetchedChores)
                     group.leave()
                 }
             }
 
             group.notify(queue: .main) {
                 DispatchQueue.main.async {
-                    self.taskDates = allTaskDates
+                    self.weeklyItems = self.groupItemsByWeekday(weekItems)
                 }
             }
         }
     }
 
-    
-    private func isTaskRecurringOnDate(_ task: Task, _ date: Date) -> Bool {
-        let calendar = Calendar.current
-        guard let startDate = task.startDate else { return false }
-
-        if let endDate = task.endDate, calendar.compare(date, to: endDate, toGranularity: .day) == .orderedDescending {
-            return false
-        }
-
-        if calendar.compare(startDate, to: date, toGranularity: .day) == .orderedDescending {
-            return false
-        }
-
-        switch task.repeatOption {
-        case "Dagligen":
-            return true
-        case "Varje vecka":
-            let weekday = calendar.component(.weekday, from: date)
-            let taskWeekday = calendar.component(.weekday, from: startDate)
-            return weekday == taskWeekday
-        case "Varje månad":
-            let taskDay = calendar.component(.day, from: startDate)
-            let selectedDay = calendar.component(.day, from: date)
-            return taskDay == selectedDay
-        case "Varje år":
-            let taskMonth = calendar.component(.month, from: startDate)
-            let selectedMonth = calendar.component(.month, from: date)
-            let taskDay = calendar.component(.day, from: startDate)
-            let selectedDay = calendar.component(.day, from: date)
-            return taskMonth == selectedMonth && taskDay == selectedDay
-        default:
-            return false
-        }
-    }
-
-    
     private func fetchTasksForSelectedDate() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
 
-        db.collection("users").document(userId).collection("children").getDocuments { (snapshot, error) in
+        db.collection("users").document(userId).collection("children").getDocuments { snapshot, error in
             if let error = error {
                 print("Fel vid hämtning av barn: \(error.localizedDescription)")
                 return
@@ -178,19 +182,12 @@ struct CalendarView: View {
                         try? doc.data(as: Task.self)
                     } ?? []
 
-                    let calendar = Calendar.current
-
                     let tasksForSelectedDate = fetchedTasks.filter { task in
-                        if task.type == "oneTime", let taskDate = task.startDate {
-                            return calendar.isDate(taskDate, inSameDayAs: selectedDate)
-                        } else if task.type == "recurring" {
-                            return isTaskRecurringOnDate(task, selectedDate)
-                        }
-                        return false
+                        return isTaskOnDate(task, selectedDate)
                     }
 
                     filteredTasks.append(contentsOf: tasksForSelectedDate)
-                    group.leave()
+                    group.leave()	
                 }
             }
 
@@ -202,12 +199,21 @@ struct CalendarView: View {
         }
     }
 
-
     private func isTaskOnDate(_ task: Task, _ date: Date) -> Bool {
-        if let taskDate = task.date {
+        if let taskDate = task.startDate {
             return Calendar.current.isDate(taskDate, inSameDayAs: date)
         }
         return false
+    }
+
+    private func groupItemsByWeekday(_ items: [Any]) -> [(String, [Any])] {
+        let grouped = Dictionary(grouping: items) { item -> String in
+            if let task = item as? Task, let date = task.startDate {
+                return dateFormatter.string(from: date)
+            }
+            return "Okänd dag"
+        }
+        return grouped.sorted { $0.key < $1.key }
     }
 
     private func formatTime(_ date: Date) -> String {
@@ -215,5 +221,42 @@ struct CalendarView: View {
         formatter.timeStyle = .short
         formatter.dateStyle = .none
         return formatter.string(from: date)
+    }
+    
+    private func addMissingFrequencyField() {
+        guard let userId = authService.user?.id else { return }
+        let db = Firestore.firestore()
+
+        db.collection("users").document(userId).collection("children").getDocuments { snapshot, error in
+            if let error = error {
+                print("Fel vid hämtning av barn: \(error.localizedDescription)")
+                return
+            }
+
+            for document in snapshot?.documents ?? [] {
+                let childRef = db.collection("users").document(userId).collection("children").document(document.documentID)
+
+                childRef.collection("chores").getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Fel vid hämtning av sysslor: \(error.localizedDescription)")
+                        return
+                    }
+
+                    for choreDoc in snapshot?.documents ?? [] {
+                        let choreRef = childRef.collection("chores").document(choreDoc.documentID)
+
+                        if choreDoc.data()["frequency"] == nil {
+                            choreRef.updateData(["frequency": 1]) { error in
+                                if let error = error {
+                                    print("Fel vid uppdatering av frequency: \(error.localizedDescription)")
+                                } else {
+                                    print("Lagt till frequency för syssla: \(choreDoc.documentID)")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -98,7 +98,6 @@ struct AddChoreView: View {
         let newChore = Chore(
             id: UUID().uuidString,
             name: name,
-            value: value,
             completed: 0,
             assignedBy: userId,
             rewardType: selectedRewardType,
