@@ -13,6 +13,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct Chore_AppApp: App {
     @StateObject var authService = AuthService()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
     
     var body: some Scene {
         WindowGroup {

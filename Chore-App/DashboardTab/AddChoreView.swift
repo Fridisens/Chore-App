@@ -94,8 +94,8 @@ struct AddChoreView: View {
     
     private func saveChore() {
         guard let userId = authService.user?.id else { return }
-        
-        let newChore = Chore(
+
+        var newChore = Chore(
             id: UUID().uuidString,
             name: name,
             completed: 0,
@@ -103,7 +103,9 @@ struct AddChoreView: View {
             rewardType: selectedRewardType,
             days: selectedDays
         )
-        
+
+        newChore.value = value
+
         firestoreService.addChore(for: userId, childId: selectedChild.id, chore: newChore) { result in
             switch result {
             case .success():
