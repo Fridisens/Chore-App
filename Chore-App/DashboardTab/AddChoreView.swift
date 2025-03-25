@@ -4,48 +4,70 @@ import FirebaseAuth
 
 struct AddChoreView: View {
     @State private var name = ""
-    @State private var value: Int = 0
-    @State private var selectedRewardType: String = "money"
+    @State private var value: Int = 10
+    @State private var selectedRewardType = "money"
     @State private var selectedDays: [String] = []
-    
+    @State private var selectedIcon: String = "star.fill"
+
     @StateObject private var firestoreService = FirestoreService()
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var authService: AuthService
-    
+
     var selectedChild: Child
-    
     let weekdays = ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"]
-    
+    let availableIcons = ["star.fill", "leaf.fill", "house.fill", "gamecontroller.fill", "flame.fill", "heart.fill", "magazine.fill", "sparkles", "bolt.fill", "camera.fill", "paintbrush.fill", "hammer.fill", "shower.fill", "washer.fill", "car.fill","dog.fill", "cat.fill", "party.popper.fill"]
+
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Syssla")) {
                     TextField("Namn på sysslan", text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocapitalization(.none)
-                        .ignoresSafeArea(.keyboard, edges: .bottom)
-                }
-                
+                        .autocapitalization(.sentences)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 20) {
+                                ForEach(availableIcons, id: \.self) { icon in
+                                    Button(action: {
+                                        selectedIcon = icon
+                                    }) {
+                                        Image(systemName: icon)
+                                            .font(.system(size: 30))
+                                            .padding()
+                                            .background(selectedIcon == icon ? Color.purple.opacity(0.2) : Color.gray.opacity(0.2))
+                                            .clipShape(Circle())
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(selectedIcon == icon ? Color.purple : Color.clear, lineWidth: 2)
+                                            )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+
                 Section(header: Text("Belöning")) {
-                    Stepper("Värde: \(value) \(selectedRewardType == "money" ? "SEK" : "min")", value: $value, in: 1...100)
-                    
-                    HStack {
+                    Stepper("Värde: \(value) \(selectedRewardType == "money" ? "kr" : "min")", value: $value, in: 1...100)
+                        .padding(.vertical, 5)
+
+                    HStack(spacing: 50) {
                         Button(action: { selectedRewardType = "money" }) {
                             Image(systemName: "dollarsign.circle.fill")
-                                .foregroundColor(selectedRewardType == "money" ? .purple : .gray)
                                 .font(.largeTitle)
+                                .foregroundColor(selectedRewardType == "money" ? .purple : .gray)
                         }
-                        
+
                         Button(action: { selectedRewardType = "screenTime" }) {
                             Image(systemName: "tv.fill")
-                                .foregroundColor(selectedRewardType == "screenTime" ? .purple : .gray)
                                 .font(.largeTitle)
+                                .foregroundColor(selectedRewardType == "screenTime" ? .purple : .gray)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 5)
                 }
-                
+
                 Section(header: Text("Välj dagar")) {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
                         ForEach(weekdays, id: \.self) { day in
@@ -59,9 +81,7 @@ struct AddChoreView: View {
                                 Text(String(day.prefix(1)))
                                     .font(.headline)
                                     .frame(width: 40, height: 40)
-                                    .background(
-                                        selectedDays.contains(day) ? Color.purple : Color.gray.opacity(0.3)
-                                    )
+                                    .background(selectedDays.contains(day) ? Color.purple : Color.gray.opacity(0.3))
                                     .foregroundColor(.white)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                     .overlay(
@@ -74,7 +94,7 @@ struct AddChoreView: View {
                     }
                     .padding(.vertical, 5)
                 }
-                
+
                 Section {
                     Button(action: saveChore) {
                         Text("Spara Syssla")
@@ -88,34 +108,33 @@ struct AddChoreView: View {
                     .disabled(name.isEmpty)
                 }
             }
-            .navigationTitle("Lägg till Syssla")
+            .navigationTitle("")
         }
     }
-    
-    private func saveChore() {
-        guard let userId = authService.user?.id else { return }
 
-        var newChore = Chore(
+    private func saveChore() {
+        guard let parentId = authService.user?.id else { return }
+
+        let newChore = Chore(
             id: UUID().uuidString,
             name: name,
+            value: value,
             completed: 0,
-            assignedBy: userId,
+            assignedBy: parentId,
             rewardType: selectedRewardType,
-            days: selectedDays
+            days: selectedDays,
+            frequency: selectedDays.count,
+            completedDates: [:],
+            icon: selectedIcon
         )
 
-        newChore.value = value
-
-        firestoreService.addChore(for: userId, childId: selectedChild.id, chore: newChore) { result in
+        firestoreService.addChore(for: parentId, childId: selectedChild.id, chore: newChore) { result in
             switch result {
-            case .success():
-                print("Syssla tillagd!")
+            case .success:
                 presentationMode.wrappedValue.dismiss()
             case .failure(let error):
-                print("Fel vid tillägg av syssla: \(error.localizedDescription)")
+                print("Fel vid sparande: \(error.localizedDescription)")
             }
         }
     }
 }
-
-

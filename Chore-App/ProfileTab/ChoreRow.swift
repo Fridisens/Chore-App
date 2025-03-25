@@ -19,7 +19,16 @@ struct ChoreRow: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            // Ikon
+            if !chore.icon.isEmpty {
+                Image(systemName: chore.icon)
+                    .font(.title2)
+                    .foregroundColor(completedChores.contains(chore.id) ? .white : .purple)
+                    .frame(width: 30, height: 30)
+            }
+
+            // Textinnehåll
             VStack(alignment: .leading) {
                 Text(chore.name)
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .primary)
@@ -29,6 +38,7 @@ struct ChoreRow: View {
                     .font(.subheadline)
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .gray)
             }
+
             Spacer()
         }
         .padding()
@@ -67,10 +77,8 @@ struct ChoreRow: View {
         let valueToUpdate = chore.value
 
         if completedChores.contains(chore.id) {
-            // ✅ Avmarkera
             completedChores.removeAll { $0 == chore.id }
 
-            // 🔄 Ta bort dagens datum från completedDates
             choreRef.updateData([
                 "completedDates.\(todayKey)": FieldValue.delete(),
                 "completed": FieldValue.increment(Int64(-1))
@@ -97,7 +105,6 @@ struct ChoreRow: View {
             }
 
         } else {
-            // ✅ Markera som klar
             completedChores.append(chore.id)
 
             choreRef.updateData([
