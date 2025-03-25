@@ -10,8 +10,9 @@ struct Chore: Identifiable, Codable, Equatable {
     var days: [String]
     var frequency: Int?
     var completedDates: [String: Bool]?
+    var icon: String
     
-    init(id: String, name: String, value: Int = 0, completed: Int, assignedBy: String, rewardType: String, days: [String], frequency: Int? = nil, completedDates: [String: Bool]? = nil) {
+    init(id: String, name: String, value: Int = 0, completed: Int, assignedBy: String, rewardType: String, days: [String], frequency: Int? = nil, completedDates: [String: Bool]? = nil, icon: String = "") {
         self.id = id
         self.name = name
         self.value = value
@@ -21,5 +22,6 @@ struct Chore: Identifiable, Codable, Equatable {
         self.days = days
         self.frequency = frequency
         self.completedDates = completedDates
+        self.icon = icon
     }
 }

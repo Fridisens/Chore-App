@@ -13,4 +13,5 @@ struct Task: Identifiable, Codable {
     var repeatOption: String
     var completed: Int
     var assignedBy: String
+    var icon: String
 }

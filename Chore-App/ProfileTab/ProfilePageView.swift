@@ -20,150 +20,179 @@ struct ProfilePageView: View {
     @State private var weeklyMoneyGoal: Int = 50
     @State private var showAddMoneyDialog = false
     @State private var moneyToAdd = ""
+    @State private var showSuccessOverlay = false
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    if children.isEmpty {
-                        VStack {
-                            Text("Inga barn tillagda ännu!")
-                                .font(.title2)
-                                .padding()
-
-                            Button(action: { isAddingChild = true }) {
-                                Label("Lägg till barn", systemImage: "person.fill.badge.plus")
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if children.isEmpty {
+                            VStack {
+                                Text("Inga barn tillagda ännu!")
+                                    .font(.title2)
                                     .padding()
-                                    .background(Color.purple)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(10)
-                            }
-                        }
-                        .padding()
-                    } else {
-                        HStack {
-                            ChildPickerView(selectedChild: $selectedChild, children: children) {
-                                isAddingChild = true
+
+                                Button(action: { isAddingChild = true }) {
+                                    Label("Lägg till barn", systemImage: "person.fill.badge.plus")
+                                        .padding()
+                                        .background(Color.purple)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(10)
+                                }
                             }
                             .padding()
-                        }
+                        } else {
+                            HStack {
+                                ChildPickerView(selectedChild: $selectedChild, children: children) {
+                                    isAddingChild = true
+                                }
+                                .padding()
+                            }
 
-                        if let child = selectedChild {
-                            VStack(spacing: 20) {
-                                HStack(spacing: 15) {
-                                    Image(child.avatar)
-                                        .resizable()
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Color.purple, lineWidth: 3))
+                            if let child = selectedChild {
+                                VStack(spacing: 20) {
+                                    HStack(spacing: 15) {
+                                        Image(child.avatar)
+                                            .resizable()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
 
-                                    Text(child.name)
-                                        .font(.title2)
-                                        .bold()
+                                        Text(child.name)
+                                            .font(.title2)
+                                            .bold()
 
-                                    Spacer()
+                                        Spacer()
 
-                                    ZStack {
-                                        ProgressRing(progress: CGFloat(child.savings) / 1000)
-                                            .frame(width: 90, height: 90)
-                                            .onLongPressGesture {
-                                                showAddMoneyAlert()
+                                        ZStack {
+                                            ProgressRing(progress: CGFloat(child.savings) / 1000)
+                                                .frame(width: 90, height: 90)
+                                                .onLongPressGesture {
+                                                    showAddMoneyAlert()
+                                                }
+
+                                            VStack {
+                                                Text("Spargris")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.gray)
+                                                Text("\(child.savings) SEK")
+                                                    .font(.caption)
+                                                    .foregroundColor(.purple)
                                             }
-
-                                        VStack {
-                                            Text("Spargris")
-                                                .font(.caption2)
-                                                .foregroundColor(.gray)
-                                            Text("\(child.savings) SEK")
-                                                .font(.caption)
-                                                .foregroundColor(.purple)
                                         }
                                     }
+                                    .padding(.horizontal, 20)
+
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
+                                    }
+                                    .padding(.horizontal, 20)
+
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        ChoreListView(
+                                            chores: chores,
+                                            completedChores: $completedChores,
+                                            selectedChild: child,
+                                            onEdit: { chore in
+                                                self.selectedChore = chore
+                                                self.isEditingChore = true
+                                            },
+                                            onDelete: deleteChore,
+                                            onBalanceUpdate: updateSelectedChildBalance,
+                                            onTriggerConfetti: {
+                                                showConfetti += 1
+                                                withAnimation {
+                                                    showSuccessOverlay = true
+                                                }
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                                    withAnimation {
+                                                        showSuccessOverlay = false
+                                                    }
+                                                }
+                                            }
+                                        )
+                                        .confettiCannon(trigger: $showConfetti)
+                                        .frame(minHeight: 200)
+                                    }
+
+                                    Spacer()
                                 }
                                 .padding(.horizontal, 20)
-
-                                VStack(alignment: .leading, spacing: 10) {
-                                    AvatarPicker(selectedAvatar: $selectedAvatar, onAvatarSelected: saveAvatarToFirebase)
-                                }
-                                .padding(.horizontal, 20)
-
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ChoreListView(
-                                        chores: chores,
-                                        completedChores: $completedChores,
-                                        selectedChild: child,
-                                        onEdit: { chore in
-                                            self.selectedChore = chore
-                                            self.isEditingChore = true
-                                        },
-                                        onDelete: deleteChore,
-                                        onBalanceUpdate: updateSelectedChildBalance,
-                                        onTriggerConfetti: {
-                                            showConfetti += 1
-                                        }
-                                    )
-                                    .confettiCannon(trigger: $showConfetti)
-                                    .frame(minHeight: 200)
-                                }
-
-                                Spacer()
                             }
-                            .padding(.horizontal, 20)
+                        }
+
+                        Button(action: {
+                            showLogoutAlert()
+                        }) {
+                            Text("Logga ut")
+                                .font(.headline)
+                                .foregroundColor(.red)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white)
+                                .cornerRadius(10)
+                                .shadow(radius: 2)
+                        }
+                        .padding(.bottom)
+                    }
+                    .padding(.top, 10)
+                    .onAppear {
+                        loadChildren()
+                        loadAvatarFromFirebase()
+                        addMissingWeeklyGoal()
+                    }
+                    .onChange(of: selectedChild) { _, newChild in
+                        if let child = newChild {
+                            listenToChores(for: child)
                         }
                     }
+                    .sheet(isPresented: $isAddingChild) {
+                        AddChildView(onChildAdded: {
+                            loadChildren()
+                            isAddingChild = false
+                        }, isAddingChild: $isAddingChild)
+                    }
+                    .sheet(isPresented: $isEditingChore) {
+                        if let choreToEdit = selectedChore {
+                            EditChoreView(
+                                chore: Binding(
+                                    get: { choreToEdit },
+                                    set: { newChore in
+                                        updateChore(newChore)
+                                    }
+                                ),
+                                onSave: {
+                                    if let choreToEdit = selectedChore {
+                                        updateChore(choreToEdit)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
 
-                    Button(action: {
-                        showLogoutAlert()
-                    }) {
-                        Text("Logga ut")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.white)
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
+                if showSuccessOverlay {
+                    VStack(spacing: 12) {
+                        Image(systemName: "hand.thumbsup.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(.green)
+                        Text("Bra jobbat!")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.purple)
                     }
-                    .padding(.bottom)
-                }
-                .padding(.top, 10)
-                .onAppear {
-                    loadChildren()
-                    loadAvatarFromFirebase()
-                    addMissingWeeklyGoal()
-                }
-                .onChange(of: selectedChild) { _, newChild in
-                    if let child = newChild {
-                        listenToChores(for: child)
-                    }
-                }
-                .sheet(isPresented: $isAddingChild) {
-                    AddChildView(onChildAdded: {
-                        loadChildren()
-                        isAddingChild = false
-                    }, isAddingChild: $isAddingChild)
-                }
-                .sheet(isPresented: $isEditingChore) {
-                    if let choreToEdit = selectedChore {
-                        EditChoreView(
-                            chore: Binding(
-                                get: { choreToEdit },
-                                set: { newChore in
-                                    updateChore(newChore)
-                                }
-                            ),
-                            onSave: {
-                                if let choreToEdit = selectedChore {
-                                    updateChore(choreToEdit)
-                                }
-                            }
-                        )
-                    }
+                    .padding()
+                    .background(Color.white.opacity(0.95))
+                    .cornerRadius(20)
+                    .shadow(radius: 10)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .animation(.easeInOut(duration: 0.3), value: showSuccessOverlay)
         }
     }
-
+    
 
     private func showAddMoneyAlert() {
         let alert = UIAlertController(title: "Lägg till pengar", message: "Ange belopp att lägga till i spargrisen", preferredStyle: .alert)

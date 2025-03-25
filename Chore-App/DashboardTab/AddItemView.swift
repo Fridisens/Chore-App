@@ -6,7 +6,7 @@ struct AddItemView: View {
     @State private var selectedTab = "Chore"
     
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
             HStack {
                 Spacer()
                 Button(action: {
@@ -14,25 +14,23 @@ struct AddItemView: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.purple.opacity(0.7))
                         .padding()
                 }
             }
-            
+
             Text("Vad vill du lägga till?")
-                .font(.headline)
-                .padding(.top)
-            
-            Picker(selection: $selectedTab, label: Text("Välj typ")) {
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.purple)
+
+            Picker("Välj typ", selection: $selectedTab) {
                 Text("Syssla").tag("Chore")
                 Text("Uppgift").tag("Task")
             }
             .pickerStyle(SegmentedPickerStyle())
-            .padding()
-            .background(Color.gray.opacity(0.2))
-            .cornerRadius(10)
             .padding(.horizontal)
-            
+
             if selectedTab == "Chore" {
                 AddChoreView(selectedChild: selectedChild)
             } else {
@@ -40,5 +38,7 @@ struct AddItemView: View {
             }
         }
         .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(20)
     }
 }

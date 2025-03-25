@@ -17,150 +17,91 @@ struct CalendarView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Kalender")
-                    .font(.largeTitle)
-                    .foregroundColor(.purple)
-                    .padding(.top)
-                    .padding(.horizontal)
-
-                HStack {
-                    if !children.isEmpty {
-                        Menu {
-                            ForEach(children, id: \.id) { child in
-                                Button(action: {
-                                    selectedChild = child
-                                    fetchTasksForSelectedDate()
-                                    fetchWeeklyItems()
-                                }) {
-                                    Label(child.name, image: child.avatar)
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                if let child = selectedChild {
-                                    Image(child.avatar)
-                                        .resizable()
-                                        .frame(width: 25, height: 25)
-                                        .clipShape(Circle())
-                                    Text(child.name)
-                                } else {
-                                    Text("Välj barn")
-                                }
-                                Image(systemName: "chevron.down")
-                            }
-                            .padding(8)
-                            .background(Color.white)
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal)
-
+            VStack(spacing: 16) {
                 DatePicker("Välj datum", selection: $selectedDate, displayedComponents: [.date])
                     .datePickerStyle(GraphicalDatePickerStyle())
                     .accentColor(.purple)
-                    .padding(.horizontal)
+                    .padding()
                     .onChange(of: selectedDate) {
                         fetchTasksForSelectedDate()
                         fetchWeeklyItems()
                     }
 
-                if weeklyItems.isEmpty {
-                    Text("Inga sysslor eller uppgifter denna vecka")
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
-                } else {
+                Text("Veckans Översikt")
+                    .font(.title2)
+                    .bold()
+                    .foregroundColor(.purple)
+                    .padding(.top)
+
+                ForEach(weeklyItems, id: \.0) { weekday, items in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Veckans Översikt")
+                        Text(weekday)
                             .font(.headline)
                             .foregroundColor(.purple)
-                            .padding(.horizontal)
 
-                        LazyVStack(spacing: 8) {
-                            ForEach(weeklyItems, id: \.0) { weekday, items in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(weekday)
-                                        .font(.subheadline)
-                                        .foregroundColor(.purple)
-                                        .padding(.leading)
-
-                                    ForEach(items.indices, id: \.self) { index in
-                                        if let task = items[index] as? Task {
-                                            taskRow(task)
-                                        } else if let chore = items[index] as? Chore {
-                                            choreRow(chore, weekday: weekday)
-                                        }
+                        VStack(spacing: 6) {
+                            if items.contains(where: { $0 is Chore }) {
+                                Text("Sysslor")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 4)
+                                ForEach(items.compactMap { $0 as? Chore }, id: \.id) { chore in
+                                    HStack(spacing: 10) {
+                                        Image(systemName: chore.icon)
+                                            .foregroundColor(.purple)
+                                            .padding(8)
+                                            .background(Circle().fill(Color.purple.opacity(0.1)))
+                                        Text(chore.name)
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                        Spacer()
                                     }
+                                    .padding(10)
+                                    .background(Color.purple.opacity(0.05))
+                                    .cornerRadius(10)
                                 }
-                                .padding(.bottom, 10)
+                            }
+
+                            if items.contains(where: { $0 is Task }) {
+                                Text("Uppgifter")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                    .padding(.top, 4)
+                                    .padding(.leading, 4)
+                                ForEach(items.compactMap { $0 as? Task }, id: \.id) { task in
+                                    HStack(spacing: 10) {
+                                        Image(systemName: task.icon)
+                                            .foregroundColor(.blue)
+                                            .padding(8)
+                                            .background(Circle().fill(Color.blue.opacity(0.1)))
+                                        VStack(alignment: .leading) {
+                                            Text(task.name)
+                                                .font(.body)
+                                            if !task.isAllDay, let start = task.startTime, let end = task.endTime {
+                                                Text("\(formatTime(start)) - \(formatTime(end))")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(10)
+                                    .background(Color.blue.opacity(0.05))
+                                    .cornerRadius(10)
+                                }
                             }
                         }
-                        .padding(.horizontal)
+                        Divider()
                     }
+                    .padding(.horizontal)
                 }
             }
-            .padding(.bottom, 30)
+            .padding(.bottom, 20)
         }
         .onAppear {
             loadChildren()
             addMissingFrequencyField()
         }
-    }
-
-    private func taskRow(_ task: Task) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.name)
-                    .font(.headline)
-                if task.isAllDay {
-                    Text("Heldag")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                } else if let start = task.startTime, let end = task.endTime {
-                    Text("\(formatTime(start)) - \(formatTime(end))")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            }
-            Spacer()
-        }
-        .padding(8)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
-    }
-
-    private func choreRow(_ chore: Chore, weekday: String) -> some View {
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "sv_SE")
-        dateFormatter.dateStyle = .short
-        let todayKey = dateFormatter.string(from: selectedDate)
-
-        let isDoneToday = chore.completedDates?[todayKey] == true && chore.days.contains(weekday)
-
-        let statusColor: Color = isDoneToday ? .green : .red
-
-        return HStack {
-            VStack(alignment: .leading) {
-                Text(chore.name)
-                    .font(.headline)
-                if let freq = chore.frequency, freq > 1 {
-                    let done = chore.completed
-                    Text("\(done)/\(freq) gånger utfört")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            }
-            Spacer()
-            Circle()
-                .fill(statusColor)
-                .frame(width: 16, height: 16)
-        }
-        .padding(8)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
     }
 
     private func formatTime(_ date: Date) -> String {
@@ -173,7 +114,7 @@ struct CalendarView: View {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
 
-        db.collection("users").document(userId).collection("children").getDocuments { snapshot, error in
+        db.collection("users").document(userId).collection("children").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { doc -> Child? in
                 let data = doc.data()
                 guard let name = data["name"] as? String,
