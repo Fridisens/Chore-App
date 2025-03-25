@@ -11,16 +11,20 @@ struct ChoreRow: View {
     var onDelete: (Chore) -> Void
     var onBalanceUpdate: () -> Void
     var onTriggerConfetti: () -> Void
-    
- 
-    
+
+    private func getTodayKey() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
                 Text(chore.name)
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .primary)
                     .padding(.bottom, 2)
-                
+
                 Text("\(chore.value) \(chore.rewardType == "money" ? "KRONOR" : "MIN SKÄRMTID")")
                     .font(.subheadline)
                     .foregroundColor(completedChores.contains(chore.id) ? .white : .gray)
@@ -34,19 +38,17 @@ struct ChoreRow: View {
         .onTapGesture {
             toggleChoreCompletion()
         }
-        
-        
         .swipeActions {
             Button(role: .destructive) {
-                print("Trycker på radera för: \(chore.name)")
-                onDelete(chore)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    onDelete(chore)
+                }
             } label: {
                 Label("Ta bort", systemImage: "trash")
             }
             .tint(.red)
-            
+
             Button {
-                print("Tryckt på redigera för: \(chore.name)")
                 onEdit(chore)
             } label: {
                 Label("Redigera", systemImage: "pencil")
@@ -54,64 +56,73 @@ struct ChoreRow: View {
             .tint(.blue)
         }
     }
-    
+
     private func toggleChoreCompletion() {
         guard let parentId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(selectedChild.id)
         let choreRef = childRef.collection("chores").document(chore.id)
-        
-        let valueToUpdate = chore.rewardType == "money" ? chore.value : chore.value
-        
+
+        let todayKey = getTodayKey()
+        let valueToUpdate = chore.value
+
         if completedChores.contains(chore.id) {
+            // ✅ Avmarkera
             completedChores.removeAll { $0 == chore.id }
-            choreRef.updateData(["completed": 0])
-            
+
+            // 🔄 Ta bort dagens datum från completedDates
+            choreRef.updateData([
+                "completedDates.\(todayKey)": FieldValue.delete(),
+                "completed": FieldValue.increment(Int64(-1))
+            ])
+
             if chore.rewardType == "money" {
-                childRef.updateData(["balance": FieldValue.increment(-Int64(valueToUpdate))]) { error in
-                    if let error = error {
-                        print("Fel vid minskning av saldo: \(error.localizedDescription)")
-                    } else {
-                        print("Saldot minskat med \(valueToUpdate) kr")
+                let newBalance = max(0, selectedChild.balance - valueToUpdate)
+                childRef.updateData(["balance": newBalance]) { error in
+                    if error == nil {
                         onBalanceUpdate()
+                    } else {
+                        print("Fel vid uppdatering av saldo: \(error!.localizedDescription)")
                     }
                 }
             } else if chore.rewardType == "screenTime" {
-                childRef.updateData(["screenTime": FieldValue.increment(-Int64(valueToUpdate))]) { error in
-                    if let error = error {
-                        print("Fel vid minskning av skärmtid: \(error.localizedDescription)")
-                    } else {
-                        print("Skärmtid minskad med \(valueToUpdate) min")
+                let newScreenTime = max(0, selectedChild.balance - valueToUpdate)
+                childRef.updateData(["screenTime": newScreenTime]) { error in
+                    if error == nil {
                         onBalanceUpdate()
+                    } else {
+                        print("Fel vid uppdatering av skärmtid: \(error!.localizedDescription)")
                     }
                 }
             }
+
         } else {
+            // ✅ Markera som klar
             completedChores.append(chore.id)
-            let todayKey = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
+
             choreRef.updateData([
-                "completedDates.\(todayKey)": true
-                ])
-            choreRef.updateData(["completed": 1])
-            
+                "completedDates.\(todayKey)": true,
+                "completed": FieldValue.increment(Int64(1))
+            ])
+
             onTriggerConfetti()
-            
+
             if chore.rewardType == "money" {
-                childRef.updateData(["balance": FieldValue.increment(Int64(valueToUpdate))]) { error in
-                    if let error = error {
-                        print("Fel vid ökning av saldo: \(error.localizedDescription)")
-                    } else {
-                        print("Saldot ökat med \(valueToUpdate) kr")
+                let newBalance = selectedChild.balance + valueToUpdate
+                childRef.updateData(["balance": newBalance]) { error in
+                    if error == nil {
                         onBalanceUpdate()
+                    } else {
+                        print("Fel vid uppdatering av saldo: \(error!.localizedDescription)")
                     }
                 }
             } else if chore.rewardType == "screenTime" {
-                childRef.updateData(["screenTime": FieldValue.increment(Int64(valueToUpdate))]) { error in
-                    if let error = error {
-                        print("Fel vid ökning av skärmtid: \(error.localizedDescription)")
-                    } else {
-                        print("Skärmtid ökat med \(valueToUpdate) min")
+                let newScreenTime = selectedChild.balance + valueToUpdate
+                childRef.updateData(["screenTime": newScreenTime]) { error in
+                    if error == nil {
                         onBalanceUpdate()
+                    } else {
+                        print("Fel vid uppdatering av skärmtid: \(error!.localizedDescription)")
                     }
                 }
             }

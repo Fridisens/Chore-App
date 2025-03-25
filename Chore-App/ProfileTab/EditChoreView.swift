@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct EditChoreView: View {
-    @Binding var chore: Chore  // ✅ Korrekt Binding till sysslan
+    @Binding var chore: Chore
     var onSave: () -> Void
     @Environment(\.presentationMode) var presentationMode
 
@@ -10,21 +10,20 @@ struct EditChoreView: View {
             Text("Redigera syssla")
                 .font(.title)
                 .padding()
-
-            // ✅ Textfält för namn
+            
             TextField("Namn", text: $chore.name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
 
-            // ✅ Numeriskt fält för värde
+      
             TextField("Värde", value: $chore.value, formatter: NumberFormatter())
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.numberPad)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
 
-            // ✅ Spara-knapp
+         
             Button("Spara") {
                 onSave()
                 presentationMode.wrappedValue.dismiss()

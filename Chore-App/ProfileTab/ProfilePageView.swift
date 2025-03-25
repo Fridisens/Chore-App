@@ -17,6 +17,7 @@ struct ProfilePageView: View {
     @State private var selectedAvatar: String = "avatar1"
     @State private var showConfetti = 0
     @State private var weeklyGoal: String = ""
+    @State private var weeklyMoneyGoal: Int = 50
     @State private var showAddMoneyDialog = false
     @State private var moneyToAdd = ""
 
@@ -200,7 +201,6 @@ struct ProfilePageView: View {
         }
     }
     
-    
     private func addMissingWeeklyGoal() {
         guard let parentId = authService.user?.id else { return }
         let db = Firestore.firestore()
@@ -247,13 +247,24 @@ struct ProfilePageView: View {
 
     private func listenToChores(for child: Child) {
         guard let parentId = authService.user?.id else { return }
-        
+
         firestoreService.listenToChores(for: parentId, childId: child.id) { fetchedChores in
             DispatchQueue.main.async {
                 self.chores = fetchedChores
-                print("Uppdaterade sysslor för \(child.name): \(fetchedChores.count) stycken")
+
+                let today = getTodayKey()
+                self.completedChores = fetchedChores.compactMap { chore in
+                    chore.completedDates?[today] == true ? chore.id : nil
+                }
             }
         }
+    }
+    
+    private func getTodayKey() -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter.string(from: Date())
     }
       
     private func loadChores() {
@@ -303,15 +314,13 @@ struct ProfilePageView: View {
     private func deleteChore(_ chore: Chore) {
         let context = LAContext()
         var error: NSError?
-        
-        
+
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             let reason = "Autentisera för att radera sysslan: \(chore.name)"
-            
+
             context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
                 DispatchQueue.main.async {
                     if success {
-                        
                         self.confirmDeleteChore(chore)
                     } else {
                         print("Face ID/Touch ID autentisering misslyckades.")
@@ -319,24 +328,37 @@ struct ProfilePageView: View {
                 }
             }
         } else {
-            print("Face ID/Touch ID är inte tillgängligt på denna enhet.")
+            print("⚠️ Face ID/Touch ID ej tillgängligt – visar vanlig bekräftelse")
+
+            let alert = UIAlertController(title: "Radera syssla", message: "Är du säker på att du vill ta bort '\(chore.name)'?", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Avbryt", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: "Radera", style: .destructive) { _ in
+                self.confirmDeleteChore(chore)
+            })
+
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = scene.windows.first?.rootViewController {
+                rootVC.present(alert, animated: true)
+            }
         }
     }
     
     private func confirmDeleteChore(_ chore: Chore) {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
-        
+
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(childId)
-        
+
+        print("Försöker radera från Firestore: users/\(parentId)/children/\(childId)/chores/\(chore.id)")
+
         childRef.collection("chores").document(chore.id).delete { error in
             if let error = error {
                 print("Fel vid radering av syssla: \(error.localizedDescription)")
             } else {
-                print("Syssla raderad: \(chore.name)")
-                
-                DispatchQueue.main.async {
-                    self.chores.removeAll { $0.id == chore.id }
+                print("Syssla raderad i Firestore: \(chore.name)")
+
+                if let child = selectedChild {
+                    listenToChores(for: child)
                 }
             }
         }
@@ -376,10 +398,9 @@ struct ProfilePageView: View {
                 return
             }
 
-            if let data = snapshot?.data(),
-               let newBalance = data["balance"] as? Int,
-               let newGoal = data["weeklyGoal"] as? Int {
-
+            if let data = snapshot?.data() {
+                let newBalance = data["balance"] as? Int ?? 0
+                let newGoal = data["weeklyGoal"] as? Int ?? 50
                 let newSavings = data["savings"] as? Int ?? 0
 
                 DispatchQueue.main.async {
@@ -397,7 +418,6 @@ struct ProfilePageView: View {
         }
     }
 
-
     
     private func loadChildren() {
         guard let parentId = authService.user?.id else { return }
@@ -411,15 +431,16 @@ struct ProfilePageView: View {
 
             self.children = snapshot?.documents.compactMap { doc in
                 let data = doc.data()
+
                 guard let name = data["name"] as? String,
-                      let avatar = data["avatar"] as? String,
-                      let balance = data["balance"] as? Int,
-                      let weeklyGoal = data["weeklyGoal"] as? Int else {
-                    print("Saknade fält i dokumentet: \(data)")
+                      let avatar = data["avatar"] as? String else {
+                    print("Saknade namn eller avatar i dokumentet: \(data)")
                     return nil
                 }
 
+                let balance = data["balance"] as? Int ?? 0
                 let savings = data["savings"] as? Int ?? 0
+                let weeklyGoal = data["weeklyGoal"] as? Int ?? 50
 
                 return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, savings: savings, weeklyGoal: weeklyGoal)
             } ?? []
@@ -427,15 +448,13 @@ struct ProfilePageView: View {
             DispatchQueue.main.async {
                 print("Laddade barn: \(self.children.map { "\($0.name) (ID: \($0.id))" })")
 
-                if self.children.isEmpty {
-                    self.selectedChild = nil
-                } else if self.selectedChild == nil {
+                if self.selectedChild == nil, !self.children.isEmpty {
                     self.selectedChild = self.children.first
+                    self.weeklyMoneyGoal = self.selectedChild?.weeklyGoal ?? 50
                 }
             }
         }
     }
-
     
     private func saveAvatarToFirebase() {
         guard let parentId = authService.user?.id, let childId = selectedChild?.id else { return }
