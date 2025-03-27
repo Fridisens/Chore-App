@@ -6,12 +6,12 @@ struct InputField: View {
     var placeholder: String
     @Binding var text: String
     var isSecure: Bool = false
-
+    
     var body: some View {
         HStack {
             Image(systemName: icon)
                 .foregroundColor(.purple)
-
+            
             if isSecure {
                 SecureField(placeholder, text: $text)
             } else {

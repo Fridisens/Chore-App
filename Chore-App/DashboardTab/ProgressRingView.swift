@@ -6,7 +6,7 @@ struct ProgressRingView: View {
     var title: String
     var goalText: String
     var onEdit: () -> Void
-
+    
     var body: some View {
         VStack {
             ZStack {
@@ -16,19 +16,19 @@ struct ProgressRingView: View {
                     .font(.system(size: 40))
                     .scaleEffect(1.1)
             }
-
+            
             Text(goalText)
                 .font(.caption)
                 .bold()
                 .padding(.top, 4)
-
+            
             Button(action: onEdit) {
                 Image(systemName: "pencil.circle.fill")
                     .foregroundColor(.purple)
                     .font(.title2)
             }
             .padding(.top, 2)
-
+            
             Text(title)
                 .font(.headline)
                 .padding(.top, 4)

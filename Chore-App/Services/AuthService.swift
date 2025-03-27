@@ -37,8 +37,7 @@ class AuthService: ObservableObject {
             
         }
     }
-    
-    
+
     func login (email: String, password: String, completion: @escaping (Result<Void, Error>) -> Void) {
         auth.signIn(withEmail: email, password: password) { result, error in
             if let error = error {
@@ -59,7 +58,7 @@ class AuthService: ObservableObject {
             self.user = nil
             return
         }
-    
+        
         let userRef = db.collection("users").document(currentUser.uid)
         userRef.getDocument { snapshot, error in
             if let error = error {
@@ -89,5 +88,4 @@ class AuthService: ObservableObject {
             print("Error at logout: \(error)")
         }
     }
-    
 }

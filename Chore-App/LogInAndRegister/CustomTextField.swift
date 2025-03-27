@@ -4,7 +4,7 @@ struct CustomTextField: View {
     var placeholder: String
     @Binding var text: String
     var isSecure: Bool
-
+    
     var body: some View {
         Group {
             if isSecure {

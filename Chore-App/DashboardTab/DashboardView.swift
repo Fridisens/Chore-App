@@ -16,22 +16,22 @@ struct DashboardView: View {
     
     enum ActiveSheet: Identifiable {
         case addChild, addItem
-
+        
         var id: Int { hashValue }
     }
     
     @State private var activeSheet: ActiveSheet?
-
+    
     var body: some View {
         VStack {
             if children.isEmpty {
                 Spacer()
-
+                
                 VStack(spacing: 20) {
                     Text("Inga barn tillagda ännu")
                         .font(.title2)
                         .foregroundColor(.gray)
-
+                    
                     Button(action: {
                         activeSheet = .addChild
                     }) {
@@ -45,7 +45,7 @@ struct DashboardView: View {
                             .padding(.horizontal)
                     }
                 }
-
+                
                 Spacer()
             } else {
                 VStack(alignment: .leading, spacing: 16) {
@@ -57,13 +57,13 @@ struct DashboardView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-
-                    if let child = selectedChild {
+                    
+                    if selectedChild != nil {
                         Text("Välkommen, \(authService.user?.name ?? "User")!")
                             .font(.largeTitle)
                             .padding(.bottom, 10)
                             .frame(maxWidth: .infinity, alignment: .center)
-
+                        
                         VStack(spacing: 30) {
                             goalProgressView(
                                 title: "Pengar",
@@ -75,7 +75,7 @@ struct DashboardView: View {
                                 editAction: saveMoneyGoal
                             )
                             .padding(.bottom, 20)
-
+                            
                             goalProgressView(
                                 title: "Skärmtid",
                                 value: screenTimeEarned,
@@ -87,9 +87,9 @@ struct DashboardView: View {
                             )
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-
+                        
                         Spacer()
-
+                        
                         Button(action: {
                             activeSheet = .addItem
                         }) {
@@ -116,7 +116,7 @@ struct DashboardView: View {
             updateChildBalance()
             updateChildProgress()
         }
-
+        
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .addChild:
@@ -132,21 +132,21 @@ struct DashboardView: View {
             }
         }
     }
-
+    
     private func goalProgressView(title: String, value: Int, goal: Int, unit: String, emoji: String, isEditing: Binding<Bool>, editAction: @escaping () -> Void) -> some View {
         VStack(spacing: 12) {
             ZStack {
                 ProgressRing(progress: CGFloat(value) / CGFloat(goal))
                     .frame(width: 130, height: 130)
-
+                
                 VStack(spacing: 4) {
                     Text(emoji)
                         .font(.largeTitle)
-
+                    
                     Text("\(value) / \(goal) \(unit)")
                         .font(.caption)
                         .bold()
-
+                    
                     Button(action: { isEditing.wrappedValue = true }) {
                         Image(systemName: "pencil.circle.fill")
                             .foregroundColor(.purple)
@@ -154,7 +154,7 @@ struct DashboardView: View {
                     }
                 }
             }
-
+            
             Text(title)
                 .font(.headline)
         }
@@ -162,11 +162,11 @@ struct DashboardView: View {
             GoalEditView(title: "Ändra veckans mål för \(title.lowercased())", goal: isEditing.wrappedValue ? Binding(get: { goal }, set: { _ in }) : .constant(goal), onSave: editAction)
         }
     }
-
+    
     private func loadChildren() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
-
+        
         db.collection("users").document(userId).collection("children").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { doc -> Child? in
                 let data = doc.data()
@@ -176,10 +176,10 @@ struct DashboardView: View {
                 let savings = data["savings"] as? Int ?? 0
                 let weeklyGoal = data["weeklyGoal"] as? Int ?? 50
                 let weeklyScreenGoal = data["weeklyScreenTimeGoal"] as? Int ?? 30
-
+                
                 return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, savings: savings, weeklyGoal: weeklyGoal, weeklyScreenTimeGoal: weeklyScreenGoal)
             } ?? []
-
+            
             DispatchQueue.main.async {
                 self.children = fetched
                 if self.selectedChild == nil, let first = fetched.first {
@@ -188,46 +188,46 @@ struct DashboardView: View {
             }
         }
     }
-
+    
     private func updateChildBalance() {
         guard let userId = authService.user?.id, let child = selectedChild else { return }
         let db = Firestore.firestore()
-
+        
         db.collection("users").document(userId).collection("children").document(child.id).getDocument { snapshot, _ in
             if let data = snapshot?.data() {
                 let newBalance = data["balance"] as? Int ?? 0
                 let newGoal = data["weeklyGoal"] as? Int ?? 50
                 let newSavings = data["savings"] as? Int ?? 0
                 let newScreenGoal = data["weeklyScreenTimeGoal"] as? Int ?? 30
-
+                
                 DispatchQueue.main.async {
                     self.selectedChild = Child(id: child.id, name: child.name, avatar: child.avatar, balance: newBalance, savings: newSavings, weeklyGoal: newGoal, weeklyScreenTimeGoal: newScreenGoal)
                 }
             }
         }
     }
-
+    
     private func updateChildProgress() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(parentId).collection("children").document(child.id)
-
+        
         childRef.collection("chores").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
             var totalMoney = 0
             var totalScreenTime = 0
-
+            
             for chore in fetched {
                 let completedCount = chore.completed
                 let reward = chore.value
-
+                
                 if chore.rewardType == "money" {
                     totalMoney += completedCount * reward
                 } else if chore.rewardType == "screenTime" {
                     totalScreenTime += completedCount * reward
                 }
             }
-
+            
             DispatchQueue.main.async {
                 self.moneyEarned = totalMoney
                 self.screenTimeEarned = totalScreenTime
@@ -236,19 +236,19 @@ struct DashboardView: View {
             }
         }
     }
-
+    
     private func saveMoneyGoal() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
         let db = Firestore.firestore()
         db.collection("users").document(parentId).collection("children").document(child.id).updateData(["weeklyGoal": weeklyMoneyGoal])
     }
-
+    
     private func saveScreenTimeGoal() {
         guard let parentId = authService.user?.id, let child = selectedChild else { return }
         let db = Firestore.firestore()
         db.collection("users").document(parentId).collection("children").document(child.id).updateData(["weeklyScreenTimeGoal": weeklyScreenTimeGoal])
     }
-
+    
     private func addMissingSavingsField() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()

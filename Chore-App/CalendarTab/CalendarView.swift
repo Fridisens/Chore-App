@@ -8,13 +8,13 @@ struct CalendarView: View {
     @State private var children: [Child] = []
     @State private var tasks: [Task] = []
     @State private var weeklyItems: [(String, [Any])] = []
-
+    
     @StateObject private var firestoreService = FirestoreService()
     @EnvironmentObject var authService: AuthService
-
+    
     private let calendar = Calendar.current
     private let weekdays = ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"]
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -55,11 +55,11 @@ struct CalendarView: View {
                             .shadow(radius: 1)
                         }
                     }
-
                     Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 5)
+                
                 DatePicker("Välj datum", selection: $selectedDate, displayedComponents: [.date])
                     .datePickerStyle(GraphicalDatePickerStyle())
                     .accentColor(.purple)
@@ -68,19 +68,24 @@ struct CalendarView: View {
                         fetchTasksForSelectedDate()
                         fetchWeeklyItems()
                     }
-
+                
+                Text("Vecka \(currentWeekNumber(for: selectedDate))")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 5)
+                
                 Text("Veckans Översikt")
                     .font(.title2)
                     .bold()
                     .foregroundColor(.purple)
                     .padding(.top)
-
+                
                 ForEach(weeklyItems, id: \.0) { weekday, items in
                     VStack(alignment: .leading, spacing: 10) {
                         Text(weekday)
                             .font(.headline)
                             .foregroundColor(.purple)
-
+                        
                         VStack(spacing: 6) {
                             if items.contains(where: { $0 is Chore }) {
                                 Text("Sysslor")
@@ -103,7 +108,7 @@ struct CalendarView: View {
                                     .cornerRadius(10)
                                 }
                             }
-
+                            
                             if items.contains(where: { $0 is Task }) {
                                 Text("Uppgifter")
                                     .font(.subheadline)
@@ -145,17 +150,17 @@ struct CalendarView: View {
             addMissingFrequencyField()
         }
     }
-
+    
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-
+    
     private func loadChildren() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
-
+        
         db.collection("users").document(userId).collection("children").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { doc -> Child? in
                 let data = doc.data()
@@ -164,10 +169,10 @@ struct CalendarView: View {
                 let balance = data["balance"] as? Int ?? 0
                 let savings = data["savings"] as? Int ?? 0
                 let weeklyGoal = data["weeklyGoal"] as? Int ?? 50
-
+                
                 return Child(id: doc.documentID, name: name, avatar: avatar, balance: balance, savings: savings, weeklyGoal: weeklyGoal)
             } ?? []
-
+            
             DispatchQueue.main.async {
                 self.children = fetched
                 if self.selectedChild == nil, let first = fetched.first {
@@ -178,11 +183,17 @@ struct CalendarView: View {
             }
         }
     }
-
+    
+    
+    private func currentWeekNumber(for date: Date) -> Int {
+        let calendar = Calendar.current
+        return calendar.component(.weekOfYear, from: date)
+    }
+    
     private func fetchTasksForSelectedDate() {
         guard let userId = authService.user?.id,
               let child = selectedChild else { return }
-
+        
         let db = Firestore.firestore()
         db.collection("users").document(userId).collection("children").document(child.id).collection("tasks").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { try? $0.data(as: Task.self) } ?? []
@@ -190,26 +201,27 @@ struct CalendarView: View {
                 guard let date = $0.startDate else { return false }
                 return Calendar.current.isDate(date, inSameDayAs: selectedDate)
             }
-
+            
             DispatchQueue.main.async {
                 self.tasks = filtered
             }
         }
     }
-
+    
     private func fetchWeeklyItems() {
         guard let userId = authService.user?.id,
               let child = selectedChild else { return }
-
+        
         let db = Firestore.firestore()
         let childRef = db.collection("users").document(userId).collection("children").document(child.id)
-
+        
         let startOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.start ?? selectedDate
         let endOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.end ?? selectedDate
-
+        let currentWeekStart = calendar.dateInterval(of: .weekOfMonth, for: Date())?.start ?? Date()
+        
         var weekItems: [Any] = []
         let group = DispatchGroup()
-
+        
         group.enter()
         childRef.collection("tasks").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { try? $0.data(as: Task.self) } ?? []
@@ -226,39 +238,41 @@ struct CalendarView: View {
             weekItems.append(contentsOf: filtered)
             group.leave()
         }
-
+        
         group.enter()
         childRef.collection("chores").getDocuments { snapshot, _ in
             let fetched = snapshot?.documents.compactMap { try? $0.data(as: Chore.self) } ?? []
-            weekItems.append(contentsOf: fetched)
+            
+            let filtered = fetched.filter { chore in
+                return startOfWeek == currentWeekStart &&
+                !Set(chore.days.map { $0.capitalized }).isDisjoint(with: weekdaysInSelectedWeek())
+            }
+            
+            weekItems.append(contentsOf: filtered)
             group.leave()
         }
-
+        
         group.notify(queue: .main) {
             self.weeklyItems = self.groupItemsByWeekday(weekItems)
         }
     }
-
+    
     private func groupItemsByWeekday(_ items: [Any]) -> [(String, [Any])] {
         var grouped: [String: [Any]] = [:]
-        let shortFormatter = DateFormatter()
-        shortFormatter.locale = Locale(identifier: "sv_SE")
-        shortFormatter.dateFormat = "E"
-
+        
         for item in items {
             if let task = item as? Task, let date = task.startDate {
-                let day = shortFormatter.string(from: date).capitalized
-                grouped[day, default: []].append(task)
+                let weekday = calendar.component(.weekday, from: date)
+                let dayString = weekdays[weekdayIndex(weekday)]
+                grouped[dayString, default: []].append(task)
             } else if let chore = item as? Chore {
                 for day in chore.days {
                     let cap = day.capitalized
-                    if weekdays.contains(cap) {
-                        grouped[cap, default: []].append(chore)
-                    }
+                    grouped[cap, default: []].append(chore)
                 }
             }
         }
-
+        
         return weekdays.compactMap { day in
             if let items = grouped[day] {
                 let sorted = items.sorted {
@@ -269,11 +283,27 @@ struct CalendarView: View {
             return nil
         }
     }
-
+    
+    private func weekdayIndex(_ calendarWeekday: Int) -> Int {
+        let mapping = [2, 3, 4, 5, 6, 7, 1]
+        return mapping.firstIndex(of: calendarWeekday) ?? 0
+    }
+    
+    private func weekdaysInSelectedWeek() -> [String] {
+        let startOfWeek = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)?.start ?? selectedDate
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { return nil }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "sv_SE")
+            formatter.dateFormat = "E"
+            return formatter.string(from: date).capitalized
+        }
+    }
+    
     private func addMissingFrequencyField() {
         guard let userId = authService.user?.id else { return }
         let db = Firestore.firestore()
-
+        
         db.collection("users").document(userId).collection("children").getDocuments { snapshot, _ in
             for doc in snapshot?.documents ?? [] {
                 let childRef = db.collection("users").document(userId).collection("children").document(doc.documentID)
