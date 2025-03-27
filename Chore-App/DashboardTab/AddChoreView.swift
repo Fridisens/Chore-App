@@ -52,16 +52,24 @@ struct AddChoreView: View {
                         .padding(.vertical, 5)
 
                     HStack(spacing: 50) {
-                        Button(action: { selectedRewardType = "money" }) {
-                            Image(systemName: "dollarsign.circle.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(selectedRewardType == "money" ? .purple : .gray)
-                        }
+                        ForEach(["money", "screenTime"], id: \.self) { type in
+                            Button(action: {
+                                selectedRewardType = type
+                            }) {
+                                VStack {
+                                    Image(systemName: type == "money" ? "dollarsign.circle.fill" : "tv.fill")
+                                        .font(.system(size: 35))
+                                        .foregroundColor(selectedRewardType == type ? .purple : .gray)
 
-                        Button(action: { selectedRewardType = "screenTime" }) {
-                            Image(systemName: "tv.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(selectedRewardType == "screenTime" ? .purple : .gray)
+                                    Text(type == "money" ? "Pengar" : "Skärmtid")
+                                        .font(.caption)
+                                        .foregroundColor(selectedRewardType == type ? .purple : .gray)
+                                }
+                                .padding(8)
+                                .background(selectedRewardType == type ? Color.purple.opacity(0.1) : Color.clear)
+                                .cornerRadius(10)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .frame(maxWidth: .infinity)

@@ -8,28 +8,44 @@ struct AddChildView: View {
     @State private var childName = ""
     @Binding var isAddingChild: Bool
     
-    
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 20) {
+                Text("Lägg till nytt barn")
+                    .font(.title2)
+                    .bold()
+                    .padding(.top)
+
                 TextField("Barnets namn", text: $childName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
-                    .padding()
-                
-                Button("Lägg till barn") {
-                    addChild()
+                    .padding(.horizontal)
+
+                // 💜 Lägg till barn-knapp
+                Button(action: addChild) {
+                    Text("Lägg till barn")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(childName.isEmpty ? Color.gray.opacity(0.5) : Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.horizontal)
                 }
-                .padding()
                 .disabled(childName.isEmpty)
-                
+
                 Spacer()
             }
+            .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("Lägg till barn")
-            .navigationBarItems(leading:
-                                    Button("Tillbaka") {
-                isAddingChild = false
-            }
+            .navigationBarItems(trailing:
+                Button(action: {
+                    isAddingChild = false
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title)
+                        .foregroundColor(.purple.opacity(0.7))
+                        .padding()
+                }
             )
         }
     }
@@ -53,7 +69,7 @@ struct AddChildView: View {
                 if let error = error {
                     print("Error adding child: \(error.localizedDescription)")
                 } else {
-                    print("✅ Barn tillagt: \(newChild.name) med veckomål \(newChild.weeklyGoal) SEK")
+                    print("Barn tillagt: \(newChild.name) med veckomål \(newChild.weeklyGoal) SEK")
                     onChildAdded()
                     isAddingChild = false
                 }

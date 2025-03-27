@@ -7,4 +7,5 @@ struct Child: Identifiable, Codable, Hashable {
     var balance: Int
     var savings: Int
     var weeklyGoal: Int
+    var weeklyScreenTimeGoal: Int?
 }

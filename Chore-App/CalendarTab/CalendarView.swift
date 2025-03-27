@@ -18,6 +18,48 @@ struct CalendarView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                HStack {
+                    if !children.isEmpty {
+                        Menu {
+                            ForEach(children, id: \.id) { child in
+                                Button(action: {
+                                    selectedChild = child
+                                    fetchTasksForSelectedDate()
+                                    fetchWeeklyItems()
+                                }) {
+                                    Label(child.name, image: child.avatar)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if let child = selectedChild {
+                                    Image(child.avatar)
+                                        .resizable()
+                                        .frame(width: 25, height: 25)
+                                        .clipShape(Circle())
+                                    Text(child.name)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                } else {
+                                    Text("Välj barn")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                Image(systemName: "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(8)
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(radius: 1)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 5)
                 DatePicker("Välj datum", selection: $selectedDate, displayedComponents: [.date])
                     .datePickerStyle(GraphicalDatePickerStyle())
                     .accentColor(.purple)

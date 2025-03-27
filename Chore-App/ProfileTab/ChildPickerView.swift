@@ -51,7 +51,7 @@ struct ChildPickerView: View {
                     .cornerRadius(8)
                     .shadow(radius: 2)
                 }
-                .padding(.trailing, 10) //between dropdown and button
+                .padding(.trailing, 10)
             } else {
                 Text("Inga barn")
                     .font(.system(size: 14))
@@ -59,14 +59,7 @@ struct ChildPickerView: View {
                     .padding(.horizontal, 8)
             }
             
-            Spacer() // adding space between dropdown and button
-            
-            Button(action: onAddChild) {
-                Image(systemName: "person.fill.badge.plus")
-                    .font(.system(size: 20))
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 6)
-            }
+            Spacer()
         }
         .padding(.horizontal, 10)
     }

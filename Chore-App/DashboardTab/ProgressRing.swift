@@ -1,21 +1,28 @@
 import SwiftUI
 
+
 struct ProgressRing: View {
     var progress: CGFloat
-    
+
     var body: some View {
         ZStack {
             Circle()
-                .stroke(lineWidth: 10)
-                .opacity(0.3)
-                .foregroundColor(Color.gray)
-            
+                .stroke(lineWidth: 12)
+                .foregroundColor(Color.gray.opacity(0.2))
+
             Circle()
                 .trim(from: 0.0, to: min(progress, 1.0))
-                .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
-                .foregroundColor(progress >= 1.0 ? Color.green : Color.purple)
-                .rotationEffect(Angle(degrees: -90))
-                .animation(.easeOut, value: progress)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [Color.purple, Color.pink, Color.purple]),
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .shadow(color: Color.purple.opacity(0.4), radius: 4, x: 0, y: 2)
+                .animation(.easeOut(duration: 0.6), value: progress)
         }
+        .frame(width: 130, height: 130)
     }
 }
