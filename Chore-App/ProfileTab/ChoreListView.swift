@@ -10,16 +10,15 @@ struct ChoreListView: View {
     var onDelete: (Chore) -> Void
     var onBalanceUpdate: () -> Void
     var onTriggerConfetti: () -> Void
-
+    
     private var today: String {
         getToday()
     }
-
-    // ✅ Flytta filter hit
+    
     private var todayChores: [Chore] {
         chores.filter { $0.days.contains(today) }
     }
-
+    
     var body: some View {
         List {
             Section(header: Text("Dagens sysslor")) {
@@ -41,14 +40,14 @@ struct ChoreListView: View {
             debugLog()
         }
     }
-
+    
     private func getToday() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "sv_SE")
         formatter.dateFormat = "E"
         return formatter.string(from: Date()).capitalized
     }
-
+    
     private func debugLog() {
         print("Mottagna sysslor i ChoreListView:", chores.map { "\($0.name) - Dagar: \($0.days)" })
         print("Dagens dag: \(today)")

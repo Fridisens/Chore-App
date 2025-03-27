@@ -6,7 +6,7 @@ struct RegisterView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @EnvironmentObject var authService: AuthService
-
+    
     var body: some View {
         VStack(spacing: 20) {
             
@@ -15,20 +15,20 @@ struct RegisterView: View {
                 CustomTextField(placeholder: "E-post", text: $email, isSecure: false)
                 CustomTextField(placeholder: "Lösenord", text: $password, isSecure: true)
             }
-
+            
             if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.top, 5)
             }
-
+            
             PrimaryButton(title: "Registrera", action: registerUser)
             Spacer()
         }
         .padding()
     }
-
+    
     private func registerUser() {
         authService.registerUser(email: email, password: password, name: name) { (result: Result<User, Error>) in
             switch result {

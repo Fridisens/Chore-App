@@ -21,7 +21,7 @@ struct AddTaskView: View {
     var selectedChild: Child
     let repeatOptions = ["Aldrig", "Dagligen", "Varje vecka", "Varje månad", "Varje år"]
     let availableIcons = ["star.fill", "leaf.fill", "house.fill", "gamecontroller.fill", "flame.fill", "heart.fill", "magazine.fill", "sparkles", "bolt.fill", "camera.fill", "paintbrush.fill", "hammer.fill", "shower.fill", "washer.fill", "car.fill","dog.fill", "cat.fill", "party.popper.fill"]
-
+    
     
     var body: some View {
         NavigationView {
@@ -31,12 +31,12 @@ struct AddTaskView: View {
                         .font(.largeTitle)
                         .bold()
                         .foregroundColor(.purple)
-
+                    
                     TextField("Namn på uppgiften", text: $name)
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(10)
-
+                    
                     Picker("Typ av uppgift", selection: $taskType) {
                         Text("Återkommande").tag("recurring")
                         Text("Engångsuppgift").tag("oneTime")
@@ -108,7 +108,7 @@ struct AddTaskView: View {
                                 .accentColor(.purple)
                         }
                     }
-
+                    
                     Button(action: saveTask) {
                         Text("Spara Uppgift")
                             .font(.headline)

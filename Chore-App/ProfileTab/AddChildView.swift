@@ -15,12 +15,11 @@ struct AddChildView: View {
                     .font(.title2)
                     .bold()
                     .padding(.top)
-
+                
                 TextField("Barnets namn", text: $childName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
-
-                // 💜 Lägg till barn-knapp
+                
                 Button(action: addChild) {
                     Text("Lägg till barn")
                         .font(.headline)
@@ -32,20 +31,20 @@ struct AddChildView: View {
                         .padding(.horizontal)
                 }
                 .disabled(childName.isEmpty)
-
+                
                 Spacer()
             }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("Lägg till barn")
             .navigationBarItems(trailing:
-                Button(action: {
-                    isAddingChild = false
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title)
-                        .foregroundColor(.purple.opacity(0.7))
-                        .padding()
-                }
+                                    Button(action: {
+                isAddingChild = false
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(.purple.opacity(0.7))
+                    .padding()
+            }
             )
         }
     }

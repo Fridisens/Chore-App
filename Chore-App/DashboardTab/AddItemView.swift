@@ -4,7 +4,7 @@ struct AddItemView: View {
     var selectedChild: Child
     @Environment(\.presentationMode) var presentationMode
     @State private var selectedTab = "Chore"
-
+    
     var body: some View {
         VStack(spacing: 16) {
             HStack {
@@ -18,12 +18,12 @@ struct AddItemView: View {
                         .padding()
                 }
             }
-
+            
             Text("Vad vill du lägga till?")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(.purple)
-
+            
             HStack(spacing: 0) {
                 tabButton(title: "Syssla", tag: "Chore")
                 tabButton(title: "Uppgift", tag: "Task")
@@ -32,13 +32,13 @@ struct AddItemView: View {
             .background(Color.gray.opacity(0.1))
             .clipShape(Capsule())
             .padding(.horizontal)
-
+            
             ZStack {
                 if selectedTab == "Chore" {
                     AddChoreView(selectedChild: selectedChild)
                         .transition(.opacity)
                 }
-
+                
                 if selectedTab == "Task" {
                     AddTaskView(selectedChild: selectedChild)
                         .transition(.opacity)
@@ -50,7 +50,7 @@ struct AddItemView: View {
         .background(Color(.systemGray6))
         .cornerRadius(20)
     }
-
+    
     private func tabButton(title: String, tag: String) -> some View {
         Button(action: {
             withAnimation {

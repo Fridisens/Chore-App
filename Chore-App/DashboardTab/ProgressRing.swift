@@ -3,13 +3,13 @@ import SwiftUI
 
 struct ProgressRing: View {
     var progress: CGFloat
-
+    
     var body: some View {
         ZStack {
             Circle()
                 .stroke(lineWidth: 12)
                 .foregroundColor(Color.gray.opacity(0.2))
-
+            
             Circle()
                 .trim(from: 0.0, to: min(progress, 1.0))
                 .stroke(

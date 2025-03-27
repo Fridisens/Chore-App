@@ -5,8 +5,6 @@ class ChoreViewModel: ObservableObject {
     @Published var chores: [Chore] = []
     private let firestoreService = FirestoreService()
     
-    
-    
     func addChore(for userId: String, childId: String, chore: Chore) {
         firestoreService.addChore(for: userId, childId: childId, chore: chore) { result in
             switch result {
@@ -17,7 +15,7 @@ class ChoreViewModel: ObservableObject {
             }
         }
     }
-
+    
     func listenToChores(for userId: String, childId: String) {
         firestoreService.listenToChores(for: userId, childId: childId) { updatedChores in
             DispatchQueue.main.async {

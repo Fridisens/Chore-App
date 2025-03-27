@@ -8,22 +8,22 @@ struct LoginView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @EnvironmentObject var authService: AuthService
-
+    
     var body: some View {
         VStack(spacing: 20) {
-
+            
             VStack(spacing: 15) {
                 CustomTextField(placeholder: "E-post", text: $email, isSecure: false)
                 CustomTextField(placeholder: "Lösenord", text: $password, isSecure: true)
             }
-
+            
             if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.top, 5)
             }
-
+            
             PrimaryButton(title: "Logga in") {
                 authService.login(email: email, password: password) { result in
                     switch result {
@@ -40,14 +40,14 @@ struct LoginView: View {
                     }
                 }
             }
-
+            
             Divider()
                 .padding(.vertical, 10)
-
+            
             Text("Eller logga in med")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-
+            
             HStack(spacing: 20) {
                 Button(action: {
                     print("Google login (placeholder)")
@@ -66,7 +66,7 @@ struct LoginView: View {
                     .cornerRadius(10)
                     .shadow(radius: 2)
                 }
-
+                
                 Button(action: {
                     print("Apple login (placeholder)")
                 }) {
@@ -83,7 +83,7 @@ struct LoginView: View {
                     .cornerRadius(10)
                 }
             }
-
+            
             Button(action: {
                 print("Glömt lösenord tryckt")
             }) {
@@ -92,7 +92,7 @@ struct LoginView: View {
                     .foregroundColor(.purple)
                     .padding(.top, 8)
             }
-
+            
             Spacer()
         }
         .padding()

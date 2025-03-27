@@ -4,7 +4,7 @@ struct EditChoreView: View {
     @Binding var chore: Chore
     var onSave: () -> Void
     @Environment(\.presentationMode) var presentationMode
-
+    
     var body: some View {
         VStack {
             Text("Redigera syssla")
@@ -15,15 +15,15 @@ struct EditChoreView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
-
-      
+            
+            
             TextField("Värde", value: $chore.value, formatter: NumberFormatter())
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.numberPad)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
                 .padding()
-
-         
+            
+            
             Button("Spara") {
                 onSave()
                 presentationMode.wrappedValue.dismiss()
