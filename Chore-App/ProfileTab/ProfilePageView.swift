@@ -22,6 +22,7 @@ struct ProfilePageView: View {
     @State private var moneyToAdd = ""
     @State private var showSuccessOverlay = false
     @State private var showAddChildView = false
+    @State private var showDeleteChildAlert = false
     
     
     var body: some View {
@@ -127,12 +128,8 @@ struct ProfilePageView: View {
                                         .frame(minHeight: UIScreen.main.bounds.height * 0.4)
                                     }
                                 }
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 20)
-                        }
-                        
+
+                                HStack(spacing: 20) {
                         Button(action: {
                             showLogoutAlert()
                         }) {
@@ -144,7 +141,33 @@ struct ProfilePageView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
-                        .padding(.bottom, 20)
+                       
+                                    Button(action: {
+                                        showDeleteChildAlert = true
+                                    }) {
+                                        Label("Ta bort barn", systemImage: "trash")
+                                            .font(.subheadline)
+                                            .padding(.vertical, 10)
+                                            .padding(.horizontal, 20)
+                                            .background(Color.gray.opacity(0.2))
+                                            .foregroundColor(.red)
+                                            .cornerRadius(8)
+                                    }
+                                    .alert(isPresented: $showDeleteChildAlert) {
+                                        Alert(
+                                            title: Text("Radera barn"),
+                                            message: Text("Är du säker på att du vill ta bort \(selectedChild?.name ?? "barnet")?"),
+                                            primaryButton: .destructive(Text("Ta bort")) {
+                                                deleteChild()
+                                            },
+                                            secondaryButton: .cancel(Text("Avbryt"))
+                                        )
+                                    }
+                                }
+                                .padding(.top, 10)
+                            }
+                            .padding(.horizontal, 20)
+                        }
                     }
                     
                     
