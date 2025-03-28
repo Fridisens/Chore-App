@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCSJKOoyVCoh9q_2JKDLPGp7VIrqGXVhJ8</string>
+	<string></string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Usage when parent deletes a chore</string>
 	<key>GCM_SENDER_ID</key>
